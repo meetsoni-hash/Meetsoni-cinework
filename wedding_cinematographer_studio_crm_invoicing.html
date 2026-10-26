@@ -1,0 +1,3180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CineSync OS | Cloud Cinematographer CRM & Invoicing</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            serif: ['"Playfair Display"', 'serif'],
+          },
+          colors: {
+            brand: {
+              gold: '#F59E0B',
+              goldLight: '#FDE68A',
+              dark: '#080C14',
+              card: '#0F172A',
+              border: '#1E293B',
+              hover: '#1A2438',
+              cyan: '#06B6D4'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #080C14; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
+
+    @media print {
+      body * { visibility: hidden !important; }
+      #printable-container, #printable-container * { visibility: visible !important; }
+      #printable-container {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        background: white !important;
+        color: black !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-brand-dark text-slate-100 font-sans min-h-screen selection:bg-brand-gold selection:text-brand-dark flex flex-col antialiased">
+
+  <!-- ========================================== -->
+  <!-- AUTHENTICATION SCREEN OVERLAY              -->
+  <!-- ========================================== -->
+  <div id="authScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark p-4 overflow-y-auto">
+    <!-- Cinematic backdrop elements -->
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-900/20 via-brand-dark to-brand-dark pointer-events-none"></div>
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative w-full max-w-md bg-brand-card/90 backdrop-blur-xl border border-brand-border rounded-3xl p-6 sm:p-8 shadow-2xl my-auto">
+      
+      <!-- Studio Brand Logo & Intro -->
+      <div class="text-center space-y-2 mb-6">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-amber-600 via-brand-gold to-yellow-300 flex items-center justify-center text-brand-dark shadow-xl shadow-amber-500/20 font-black">
+          <i data-lucide="clapperboard" class="w-7 h-7"></i>
+        </div>
+        <h2 class="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-white mt-3">
+          CINESYNC <span class="text-brand-gold font-sans text-sm font-bold px-2 py-0.5 rounded-full bg-brand-gold/15 border border-brand-gold/30">STUDIO OS</span>
+        </h2>
+        <p class="text-xs text-slate-400">Cinematographer Booking Diary, Milestone Payments & Cloud Invoicing</p>
+      </div>
+
+      <!-- Auth Tabs: Login vs Register -->
+      <div class="grid grid-cols-2 p-1 bg-brand-dark/80 rounded-2xl border border-brand-border mb-6">
+        <button type="button" id="tabAuthLoginBtn" onclick="toggleAuthMode('login')" class="py-2 text-xs font-bold rounded-xl transition bg-brand-gold text-brand-dark shadow-md">
+          Sign In
+        </button>
+        <button type="button" id="tabAuthRegisterBtn" onclick="toggleAuthMode('register')" class="py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl transition">
+          Create Studio Account
+        </button>
+      </div>
+
+      <!-- Form Error Alert Message -->
+      <div id="authAlert" class="hidden mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+        <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+        <span id="authAlertMsg">Invalid credentials.</span>
+      </div>
+
+      <!-- Main Email/Password Form -->
+      <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4 text-xs sm:text-sm">
+        <div id="authStudioNameGroup" class="hidden space-y-1">
+          <label class="block text-slate-300 text-xs font-medium">Studio / Cinematographer Name</label>
+          <div class="relative">
+            <i data-lucide="camera" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+            <input type="text" id="authStudioName" placeholder="e.g. Royal Lens Films" class="w-full pl-10 pr-3.5 py-2.5 bg-brand-dark rounded-xl border border-brand-border text-white outline-none focus:border-brand-gold text-xs transition" />
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-slate-300 text-xs font-medium">Email Address</label>
+          <div class="relative">
+            <i data-lucide="mail" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+            <input type="email" id="authEmail" required placeholder="cinematographer@studio.com" class="w-full pl-10 pr-3.5 py-2.5 bg-brand-dark rounded-xl border border-brand-border text-white outline-none focus:border-brand-gold text-xs transition" />
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <div class="flex justify-between items-center">
+            <label class="block text-slate-300 text-xs font-medium">Password</label>
+            <button type="button" onclick="forgotPasswordPrompt()" id="forgotPasswordBtn" class="text-[11px] text-brand-gold hover:underline">Forgot?</button>
+          </div>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+            <input type="password" id="authPassword" required minlength="6" placeholder="••••••••" class="w-full pl-10 pr-10 py-2.5 bg-brand-dark rounded-xl border border-brand-border text-white outline-none focus:border-brand-gold text-xs transition" />
+            <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3.5 top-3 text-slate-400 hover:text-slate-200">
+              <i data-lucide="eye" id="passwordEyeIcon" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <button type="submit" id="authSubmitBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 via-brand-gold to-yellow-400 text-brand-dark font-bold text-xs sm:text-sm shadow-lg shadow-amber-500/25 hover:brightness-110 transition flex items-center justify-center gap-2">
+            <i data-lucide="log-in" class="w-4 h-4"></i>
+            <span id="authSubmitText">Sign In to Dashboard</span>
+          </button>
+        </div>
+      </form>
+
+      <div class="mt-6 pt-5 border-t border-brand-border text-center space-y-2">
+        <div class="flex items-center justify-center gap-2 text-[11px] text-slate-400">
+          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+          <span>Encrypted Session • Multi-Device Synced</span>
+        </div>
+        <p class="text-[10px] text-slate-500">Sign in from your Phone, iPad, PC, or Laptop to view your real-time wedding dates.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- TOP HEADER / APP BAR & CLOUD SYNC STATUS   -->
+  <!-- ========================================== -->
+  <header class="bg-brand-card/90 backdrop-blur-md border-b border-brand-border sticky top-0 z-30 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 via-brand-gold to-yellow-300 flex items-center justify-center text-brand-dark shadow-lg shadow-amber-500/20 font-black">
+        <i data-lucide="clapperboard" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-serif font-bold text-lg sm:text-xl tracking-tight text-white flex items-center gap-1.5">
+            CINESYNC <span class="text-xs font-sans font-semibold text-brand-gold px-1.5 py-0.5 rounded bg-brand-gold/10 border border-brand-gold/20">STUDIO OS</span>
+          </h1>
+        </div>
+        <p class="text-[10px] text-slate-400 font-medium hidden sm:block">Cinematography, Editing Pipeline & Multi-Device Cloud Sync</p>
+      </div>
+    </div>
+
+    <!-- Multi-Device Sync Indicator, Auth User Badge & Logout Button -->
+    <div class="flex items-center gap-2 sm:gap-3">
+      <!-- Live Sync Status Pill -->
+      <div id="cloudSyncIndicator" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        </span>
+        <span id="syncText" class="hidden xs:inline">Cloud Synced</span>
+      </div>
+
+      <!-- User Profile Badge & Quick Logout -->
+      <div class="flex items-center gap-1.5 bg-brand-border/40 pl-2.5 pr-1 py-1 rounded-xl border border-brand-border">
+        <i data-lucide="user" class="w-3.5 h-3.5 text-brand-gold"></i>
+        <span id="navUserDisplay" class="max-w-[80px] sm:max-w-[140px] truncate text-[11px] text-slate-200 font-medium">cinematographer</span>
+        <button onclick="handleUserLogout()" title="Secure Logout" class="p-1 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition ml-1">
+          <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+
+      <!-- Quick Add Wedding -->
+      <button onclick="openNewWeddingModal()" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-gold hover:bg-amber-400 text-brand-dark text-xs font-bold transition shadow-md shadow-brand-gold/20">
+        <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
+        <span>+ Wedding</span>
+      </button>
+
+      <button onclick="openSettingsModal()" title="Studio Profile Settings" class="p-2 rounded-xl bg-brand-border/40 hover:bg-brand-border text-slate-300">
+        <i data-lucide="settings" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- MAIN APP WRAPPER: SIDEBAR + CONTENT VIEWS  -->
+  <!-- ========================================== -->
+  <div class="flex-1 flex flex-col md:flex-row pb-20 md:pb-0">
+
+    <!-- DESKTOP / IPAD SIDEBAR NAVIGATION -->
+    <aside class="hidden md:flex flex-col w-64 lg:w-72 bg-brand-card border-r border-brand-border p-4 shrink-0 justify-between">
+      <div class="space-y-6">
+        <!-- Quick Studio Status Widget -->
+        <div class="p-3.5 rounded-2xl bg-brand-dark/70 border border-brand-border/80 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-brand-gold/30 text-brand-gold flex items-center justify-center font-bold">
+            <i data-lucide="camera" class="w-5 h-5"></i>
+          </div>
+          <div class="overflow-hidden">
+            <p id="sidebarStudioName" class="text-xs font-bold text-white truncate">The Royal Cinema</p>
+            <p id="sidebarStudioTag" class="text-[10px] text-brand-gold truncate">Destination & 4K Post</p>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="space-y-1.5">
+          <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-brand-gold text-brand-dark transition shadow-md shadow-brand-gold/10">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            <span>Dashboard & Dates</span>
+          </button>
+          
+          <button onclick="switchTab('weddings')" id="nav-weddings" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-brand-hover transition">
+            <i data-lucide="heart-handshake" class="w-4 h-4"></i>
+            <span>Wedding Bookings</span>
+          </button>
+
+          <button onclick="switchTab('editing')" id="nav-editing" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-brand-hover transition">
+            <i data-lucide="scissors" class="w-4 h-4"></i>
+            <span>Other Works & Edits</span>
+          </button>
+
+          <button onclick="switchTab('quotations')" id="nav-quotations" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-brand-hover transition">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+            <span>Quotation Creator</span>
+          </button>
+
+          <button onclick="switchTab('financials')" id="nav-financials" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-brand-hover transition">
+            <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+            <span>Financial Summary</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Quick Actions Sidebar Footer -->
+      <div class="space-y-2 pt-4 border-t border-brand-border">
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="openNewWeddingModal()" class="py-2.5 px-3 rounded-xl bg-brand-gold/15 hover:bg-brand-gold/25 border border-brand-gold/30 text-brand-gold font-bold text-[11px] flex items-center justify-center gap-1.5 transition">
+            <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
+            <span>+ Wedding</span>
+          </button>
+          <button onclick="openNewEditJobModal()" class="py-2.5 px-3 rounded-xl bg-brand-border/60 hover:bg-brand-border text-slate-200 font-semibold text-[11px] flex items-center justify-center gap-1.5 transition">
+            <i data-lucide="scissors" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span>+ Edit Work</span>
+          </button>
+        </div>
+        <p class="text-[10px] text-center text-slate-500 pt-1">Syncs live across Phone, iPad & PC</p>
+      </div>
+    </aside>
+
+    <!-- MAIN DYNAMIC CONTENT CONTAINER -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
+
+      <!-- ============================================== -->
+      <!-- TAB 1: DASHBOARD & UPCOMING SHOOTS (DEFAULT)   -->
+      <!-- ============================================== -->
+      <section id="tab-dashboard" class="space-y-6">
+
+        <!-- Welcome Banner & Quick Action Buttons -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="font-serif text-2xl sm:text-3xl font-bold text-white tracking-tight">Studio Dashboard</h2>
+            <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Real-time shoots itinerary, post-production pipeline & Indian Rupee cashflow.</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="openNewWeddingModal()" class="px-3.5 py-2 rounded-xl bg-brand-gold hover:bg-amber-400 text-brand-dark text-xs font-bold flex items-center gap-1.5 transition shadow-md shadow-brand-gold/20">
+              <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+              <span>Log Wedding Shoot</span>
+            </button>
+            <button onclick="openNewEditJobModal()" class="px-3.5 py-2 rounded-xl bg-brand-card hover:bg-brand-hover border border-brand-border text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition">
+              <i data-lucide="scissors" class="w-4 h-4 text-cyan-400"></i>
+              <span>Log Editing Work</span>
+            </button>
+            <button onclick="openNewQuotationModal()" class="px-3.5 py-2 rounded-xl bg-brand-card hover:bg-brand-hover border border-brand-border text-brand-gold text-xs font-semibold flex items-center gap-1.5 transition">
+              <i data-lucide="file-plus" class="w-4 h-4"></i>
+              <span>Create Quote</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- TOP KPI CARDS (FINANCIAL OVERVIEW IN INR) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <!-- Total Booked Revenue -->
+          <div class="bg-brand-card p-4 rounded-2xl border border-brand-border relative overflow-hidden group hover:border-brand-gold/40 transition">
+            <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
+              <span>Total Revenue Booked</span>
+              <span class="p-1 rounded-lg bg-brand-dark text-slate-300"><i data-lucide="wallet" class="w-3.5 h-3.5"></i></span>
+            </div>
+            <h3 id="kpi-total-revenue" class="text-xl sm:text-2xl font-bold text-white tracking-tight">₹0</h3>
+            <p id="kpi-total-counts" class="text-[11px] text-slate-400 mt-1 truncate">0 Weddings • 0 Edits</p>
+          </div>
+
+          <!-- Total Received Payment -->
+          <div class="bg-brand-card p-4 rounded-2xl border border-brand-border relative overflow-hidden group hover:border-emerald-500/40 transition">
+            <div class="flex items-center justify-between text-emerald-400 text-xs mb-1">
+              <span>Total Received</span>
+              <span class="p-1 rounded-lg bg-emerald-500/10 text-emerald-400"><i data-lucide="arrow-down-left" class="w-3.5 h-3.5"></i></span>
+            </div>
+            <h3 id="kpi-total-received" class="text-xl sm:text-2xl font-bold text-emerald-400 tracking-tight">₹0</h3>
+            <p id="kpi-received-percent" class="text-[11px] text-slate-400 mt-1">0% collected</p>
+          </div>
+
+          <!-- Total Pending Payment -->
+          <div class="bg-gradient-to-b from-rose-950/40 to-brand-card p-4 rounded-2xl border border-rose-500/30 relative overflow-hidden group hover:border-rose-500/60 transition shadow-lg shadow-rose-950/20">
+            <div class="flex items-center justify-between text-rose-300 text-xs font-semibold mb-1">
+              <span class="flex items-center gap-1.5">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                </span>
+                Total Pending Dues
+              </span>
+              <button onclick="openPendingRemindersModal()" title="Send WhatsApp Reminders" class="text-[10px] text-brand-gold underline hover:text-white">Remind</button>
+            </div>
+            <h3 id="kpi-total-pending" class="text-xl sm:text-2xl font-bold text-rose-400 tracking-tight">₹0</h3>
+            <p id="kpi-pending-breakdown" class="text-[11px] text-rose-300/80 mt-1 truncate">Pending to be settled</p>
+          </div>
+
+          <!-- Upcoming Shoots in 14 Days -->
+          <div class="bg-brand-card p-4 rounded-2xl border border-brand-border relative overflow-hidden group hover:border-amber-500/40 transition">
+            <div class="flex items-center justify-between text-amber-300 text-xs mb-1">
+              <span>Shoots (Next 14 Days)</span>
+              <span class="p-1 rounded-lg bg-amber-500/10 text-amber-300"><i data-lucide="video" class="w-3.5 h-3.5"></i></span>
+            </div>
+            <h3 id="kpi-upcoming-count" class="text-xl sm:text-2xl font-bold text-white tracking-tight">0</h3>
+            <p id="kpi-editing-active-count" class="text-[11px] text-slate-400 mt-1">0 Editing jobs active</p>
+          </div>
+        </div>
+
+        <!-- URGENT ATTENTION UPCOMING SHOOTS TIMELINE -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <h3 class="font-serif text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <i data-lucide="alarm-clock" class="w-4 h-4 text-brand-gold"></i>
+                <span>Upcoming Shoots & Function Timeline</span>
+              </h3>
+              <span id="upcomingBadgePill" class="text-xs px-2 py-0.5 rounded-full bg-brand-gold/15 text-brand-gold font-semibold border border-brand-gold/30">0</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-xs">
+              <button onclick="setDashboardRange('all')" id="range-all" class="px-2.5 py-1 rounded-lg bg-brand-gold text-brand-dark font-bold">All Upcoming</button>
+              <button onclick="setDashboardRange('14d')" id="range-14d" class="px-2.5 py-1 rounded-lg bg-brand-card hover:bg-brand-hover text-slate-300">Next 14 Days</button>
+            </div>
+          </div>
+
+          <div id="dashboardUpcomingShootsList" class="space-y-3">
+            <!-- Dynamic shoot cards -->
+          </div>
+        </div>
+
+        <!-- QUICK EDITING JOBS QUEUE (MINI PREVIEW) -->
+        <div class="space-y-3 pt-2">
+          <div class="flex items-center justify-between">
+            <h3 class="font-serif text-lg font-bold text-white flex items-center gap-2">
+              <i data-lucide="scissors" class="w-4 h-4 text-cyan-400"></i>
+              <span>Active Post-Production & Edits Pipeline</span>
+            </h3>
+            <button onclick="switchTab('editing')" class="text-xs text-brand-gold hover:underline">View All Projects &rarr;</button>
+          </div>
+
+          <div id="dashboardEditingQueue" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <!-- Dynamic editing cards -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 2: WEDDING BOOKINGS & DATES MANAGER        -->
+      <!-- ============================================== -->
+      <section id="tab-weddings" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="font-serif text-2xl sm:text-3xl font-bold text-white tracking-tight">Wedding Bookings & Shoot Dates</h2>
+            <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Multi-function schedule, crew requirements, milestone payments & GST invoices.</p>
+          </div>
+          <button onclick="openNewWeddingModal()" class="px-4 py-2.5 rounded-xl bg-brand-gold hover:bg-amber-400 text-brand-dark font-bold text-xs flex items-center gap-2 transition">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Log New Wedding</span>
+          </button>
+        </div>
+
+        <!-- Filters & Search -->
+        <div class="p-3 bg-brand-card rounded-2xl border border-brand-border grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="relative sm:col-span-2">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+            <input type="text" id="weddingSearch" oninput="renderWeddingsList()" placeholder="Search couple names, city, phone..." class="w-full pl-10 pr-4 py-2 bg-brand-dark rounded-xl text-xs sm:text-sm border border-brand-border focus:border-brand-gold outline-none text-white" />
+          </div>
+          <select id="weddingPaymentFilter" onchange="renderWeddingsList()" class="bg-brand-dark border border-brand-border text-slate-200 text-xs rounded-xl px-3 py-2 outline-none focus:border-brand-gold">
+            <option value="ALL">All Payment Statuses</option>
+            <option value="PENDING">With Pending Balances Only</option>
+            <option value="PAID">Fully Paid Only</option>
+          </select>
+        </div>
+
+        <!-- Weddings Grid -->
+        <div id="allWeddingsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 3: OTHER WORKS & EDITING PROJECTS          -->
+      <!-- ============================================== -->
+      <section id="tab-editing" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="font-serif text-2xl sm:text-3xl font-bold text-white tracking-tight">Other Works & Post-Production</h2>
+            <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Track freelance gigs: Teasers, Reels packages, Color Grading (DI), and commercials.</p>
+          </div>
+          <button onclick="openNewEditJobModal()" class="px-4 py-2.5 rounded-xl bg-brand-gold hover:bg-amber-400 text-brand-dark font-bold text-xs flex items-center gap-2 transition">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Log Editing Project</span>
+          </button>
+        </div>
+
+        <!-- Post-Production Metrics -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="bg-brand-card p-3 rounded-xl border border-brand-border">
+            <span class="text-[10px] text-slate-400 font-semibold uppercase">Total Editing Fee</span>
+            <h4 id="edit-summary-total" class="text-base font-bold text-white mt-0.5">₹0</h4>
+          </div>
+          <div class="bg-brand-card p-3 rounded-xl border border-brand-border">
+            <span class="text-[10px] text-emerald-400 font-semibold uppercase">Received</span>
+            <h4 id="edit-summary-paid" class="text-base font-bold text-emerald-400 mt-0.5">₹0</h4>
+          </div>
+          <div class="bg-brand-card p-3 rounded-xl border border-brand-border">
+            <span class="text-[10px] text-rose-400 font-semibold uppercase">Pending Dues</span>
+            <h4 id="edit-summary-pending" class="text-base font-bold text-rose-400 mt-0.5">₹0</h4>
+          </div>
+          <div class="bg-brand-card p-3 rounded-xl border border-brand-border">
+            <span class="text-[10px] text-cyan-400 font-semibold uppercase">Active In Pipeline</span>
+            <h4 id="edit-summary-active" class="text-base font-bold text-cyan-400 mt-0.5">0</h4>
+          </div>
+        </div>
+
+        <!-- Search & Status Filter -->
+        <div class="p-3 bg-brand-card rounded-2xl border border-brand-border grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="relative sm:col-span-2">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+            <input type="text" id="editingSearch" oninput="renderEditingList()" placeholder="Search project title, client, type..." class="w-full pl-10 pr-4 py-2 bg-brand-dark rounded-xl text-xs sm:text-sm border border-brand-border focus:border-brand-gold outline-none text-white" />
+          </div>
+          <select id="editingStatusFilter" onchange="renderEditingList()" class="bg-brand-dark border border-brand-border text-slate-200 text-xs rounded-xl px-3 py-2 outline-none focus:border-brand-gold">
+            <option value="ALL">All Workflow Stages</option>
+            <option value="Raw Received">Raw Received</option>
+            <option value="Rough Cut">Rough Cut</option>
+            <option value="In Review">Client Review / Revision</option>
+            <option value="Color Grading">Color Grading (DI)</option>
+            <option value="Delivered">Delivered & Closed</option>
+          </select>
+        </div>
+
+        <div id="allEditingGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 4: QUOTATION & PROPOSAL BUILDER           -->
+      <!-- ============================================== -->
+      <section id="tab-quotations" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="font-serif text-2xl sm:text-3xl font-bold text-white tracking-tight">Quotations & Proposals</h2>
+            <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Build function-wise itemized packages with GST & milestones for prospective clients.</p>
+          </div>
+          <button onclick="openNewQuotationModal()" class="px-4 py-2.5 rounded-xl bg-brand-gold hover:bg-amber-400 text-brand-dark font-bold text-xs flex items-center gap-2 transition">
+            <i data-lucide="file-plus" class="w-4 h-4"></i>
+            <span>Create New Quote</span>
+          </button>
+        </div>
+
+        <!-- Status Filter Bar -->
+        <div class="flex items-center gap-2 bg-brand-card p-2 rounded-2xl border border-brand-border overflow-x-auto text-xs">
+          <button onclick="setQuotationFilter('ALL')" id="qfilter-ALL" class="px-3 py-1.5 rounded-xl font-bold bg-brand-gold text-brand-dark">All Quotes</button>
+          <button onclick="setQuotationFilter('Draft')" id="qfilter-Draft" class="px-3 py-1.5 rounded-xl text-slate-300 hover:text-white">Drafts</button>
+          <button onclick="setQuotationFilter('Sent')" id="qfilter-Sent" class="px-3 py-1.5 rounded-xl text-slate-300 hover:text-white">Sent / Pending</button>
+          <button onclick="setQuotationFilter('Accepted')" id="qfilter-Accepted" class="px-3 py-1.5 rounded-xl text-slate-300 hover:text-white">Accepted</button>
+          <button onclick="setQuotationFilter('Declined')" id="qfilter-Declined" class="px-3 py-1.5 rounded-xl text-slate-300 hover:text-white">Declined</button>
+        </div>
+
+        <div id="allQuotationsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 5: FINANCIAL SUMMARY & AGING REPORT       -->
+      <!-- ============================================== -->
+      <section id="tab-financials" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="font-serif text-2xl sm:text-3xl font-bold text-white tracking-tight">Financial Summary & Analytics</h2>
+            <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Integrated revenue analytics, collection ratio, payment aging & WhatsApp reminder drafts.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="openPendingRemindersModal()" class="px-3 py-2 bg-rose-500/15 border border-rose-500/30 hover:bg-rose-500/25 text-rose-400 font-semibold rounded-xl text-xs flex items-center gap-1.5 transition">
+              <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+              <span>WhatsApp Pending Reminders</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="p-4 rounded-2xl bg-brand-card border border-brand-border">
+            <span class="text-xs text-slate-400">Wedding Shoots Revenue</span>
+            <h3 id="fin-wedding-total" class="text-xl font-bold text-white mt-1">₹0</h3>
+            <p id="fin-wedding-collected" class="text-[11px] text-emerald-400 mt-1">₹0 received</p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-brand-card border border-brand-border">
+            <span class="text-xs text-slate-400">Post-Production & Editing Revenue</span>
+            <h3 id="fin-editing-total" class="text-xl font-bold text-white mt-1">₹0</h3>
+            <p id="fin-editing-collected" class="text-[11px] text-emerald-400 mt-1">₹0 received</p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-brand-card border border-brand-gold/30 bg-gradient-to-br from-brand-gold/5 to-transparent">
+            <span class="text-xs text-brand-gold font-medium">Potential Pipeline (Quotes)</span>
+            <h3 id="fin-pipeline-total" class="text-xl font-bold text-brand-gold mt-1">₹0</h3>
+            <p id="fin-pipeline-sub" class="text-[11px] text-slate-400 mt-1">Active proposals</p>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <!-- Ratio Chart -->
+          <div class="bg-brand-card p-5 rounded-2xl border border-brand-border flex flex-col items-center">
+            <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3 w-full">Collection Ratio</h4>
+            <div class="relative w-48 h-48">
+              <canvas id="ratioChart"></canvas>
+            </div>
+            <div class="w-full grid grid-cols-2 gap-2 mt-4 text-center">
+              <div class="p-2 rounded-xl bg-brand-dark border border-emerald-500/20">
+                <span class="text-[10px] text-slate-400 block">Total Credited</span>
+                <span id="chartCreditedVal" class="text-xs font-bold text-emerald-400">₹0</span>
+              </div>
+              <div class="p-2 rounded-xl bg-brand-dark border border-rose-500/20">
+                <span class="text-[10px] text-slate-400 block">Pending Dues</span>
+                <span id="chartPendingVal" class="text-xs font-bold text-rose-400">₹0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Income Category Breakdown -->
+          <div class="bg-brand-card p-5 rounded-2xl border border-brand-border lg:col-span-2 flex flex-col justify-between">
+            <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Revenue Streams Breakdown (INR)</h4>
+            <div class="relative h-60 w-full">
+              <canvas id="revenueCategoryChart"></canvas>
+            </div>
+            <p class="text-[11px] text-slate-400 text-center mt-2">Combined insights for multi-day weddings & specialized editing services.</p>
+          </div>
+        </div>
+
+        <!-- All Transactions Master Log -->
+        <div class="bg-brand-card rounded-2xl border border-brand-border overflow-hidden">
+          <div class="p-4 border-b border-brand-border flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-semibold text-white">Unified Payment Receipts Log</h3>
+              <p class="text-xs text-slate-400">All milestone deposits, UPI transfers & final settlements.</p>
+            </div>
+            <span id="finReceiptCount" class="text-xs px-2.5 py-1 bg-brand-dark text-brand-gold rounded-lg border border-brand-border">0 Receipts</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-brand-dark/70 text-[10px] uppercase text-slate-400 border-b border-brand-border">
+                <tr>
+                  <th class="py-3 px-4">Date</th>
+                  <th class="py-3 px-4">Client / Project</th>
+                  <th class="py-3 px-4">Stream</th>
+                  <th class="py-3 px-4">Milestone</th>
+                  <th class="py-3 px-4">Mode</th>
+                  <th class="py-3 px-4 text-right">Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody id="financialReceiptsTable" class="divide-y divide-brand-border">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MOBILE BOTTOM TOUCH NAVIGATION (Phones / Small)-->
+  <!-- ============================================== -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-brand-card/95 backdrop-blur-lg border-t border-brand-border flex justify-around items-center py-2 px-1 z-40">
+    <button onclick="switchTab('dashboard')" id="mob-dashboard" class="flex flex-col items-center gap-1 text-brand-gold font-semibold">
+      <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+      <span class="text-[9px]">Dashboard</span>
+    </button>
+    <button onclick="switchTab('weddings')" id="mob-weddings" class="flex flex-col items-center gap-1 text-slate-400">
+      <i data-lucide="heart-handshake" class="w-4 h-4"></i>
+      <span class="text-[9px]">Weddings</span>
+    </button>
+    <button onclick="switchTab('editing')" id="mob-editing" class="flex flex-col items-center gap-1 text-slate-400">
+      <i data-lucide="scissors" class="w-4 h-4"></i>
+      <span class="text-[9px]">Editing</span>
+    </button>
+    <button onclick="switchTab('quotations')" id="mob-quotations" class="flex flex-col items-center gap-1 text-slate-400">
+      <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+      <span class="text-[9px]">Quotes</span>
+    </button>
+    <button onclick="switchTab('financials')" id="mob-financials" class="flex flex-col items-center gap-1 text-slate-400">
+      <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+      <span class="text-[9px]">Finance</span>
+    </button>
+  </nav>
+
+  <!-- ============================================== -->
+  <!-- MODAL 1: ADD / EDIT WEDDING BOOKING           -->
+  <!-- ============================================== -->
+  <div id="weddingModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div class="bg-brand-card border border-brand-border w-full max-w-3xl rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden my-auto">
+      <div class="px-5 py-4 border-b border-brand-border flex items-center justify-between bg-brand-dark/50">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-brand-gold/20 text-brand-gold flex items-center justify-center">
+            <i data-lucide="heart" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 id="weddingModalTitle" class="font-serif text-lg sm:text-xl font-bold text-white">Log Wedding Shoot Contract</h3>
+            <p class="text-xs text-slate-400">Couple profile, multi-function dates & milestone payments</p>
+          </div>
+        </div>
+        <button onclick="closeWeddingModal()" class="p-1 rounded-lg text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-5 text-xs sm:text-sm">
+        <form id="weddingForm" onsubmit="saveWeddingForm(event)" class="space-y-5">
+          <input type="hidden" id="weddingEditId" value="" />
+
+          <!-- Couple & City -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">Couple Names (Bride & Groom) <span class="text-rose-400">*</span></label>
+              <input type="text" id="wCoupleNames" required placeholder="e.g. Siddharth & Kiara" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-brand-gold text-xs sm:text-sm" />
+            </div>
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">City / Wedding Destination <span class="text-rose-400">*</span></label>
+              <input type="text" id="wCity" required placeholder="e.g. Udaipur / Mumbai" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-brand-gold text-xs sm:text-sm" />
+            </div>
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">WhatsApp / Contact Phone</label>
+              <input type="tel" id="wPhone" placeholder="+91 98765 43210" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-brand-gold text-xs sm:text-sm" />
+            </div>
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">Workflow Status</label>
+              <select id="wWorkflowStatus" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-brand-gold text-xs sm:text-sm">
+                <option value="Upcoming Shoot">Upcoming Shoot</option>
+                <option value="Shoot In Progress">Shoot In Progress</option>
+                <option value="In Post-Production">In Post-Production (Editing)</option>
+                <option value="Delivered">Delivered & Closed</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Total Fee (INR) -->
+          <div class="p-3.5 bg-brand-dark/70 rounded-xl border border-brand-border">
+            <label class="block text-slate-300 text-xs mb-1">Total Agreed Package Investment (₹ INR) <span class="text-rose-400">*</span></label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-2.5 text-brand-gold font-bold">₹</span>
+              <input type="number" id="wTotalAmount" required min="0" step="1000" placeholder="250000" oninput="calculateWeddingFormBalance()" class="w-full pl-8 pr-3 py-2 bg-brand-card border border-brand-border rounded-xl text-white font-bold text-sm outline-none focus:border-brand-gold" />
+            </div>
+          </div>
+
+          <!-- Multi-Function Dates Schedule -->
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs uppercase font-bold tracking-wider text-brand-gold flex items-center gap-1.5">
+                <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Multi-Function Dates & Coverage
+              </h4>
+              <button type="button" onclick="addFunctionRow()" class="px-2.5 py-1 text-xs bg-brand-gold/15 hover:bg-brand-gold/25 text-brand-gold font-semibold rounded-lg flex items-center gap-1">
+                <i data-lucide="plus" class="w-3 h-3"></i> Add Function
+              </button>
+            </div>
+            <div id="wFunctionsList" class="space-y-2">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Milestone Payments Received -->
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs uppercase font-bold tracking-wider text-emerald-400 flex items-center gap-1.5">
+                <i data-lucide="credit-card" class="w-3.5 h-3.5"></i> Milestone Payments Credited (INR)
+              </h4>
+              <button type="button" onclick="addPaymentRow()" class="px-2.5 py-1 text-xs bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 font-semibold rounded-lg flex items-center gap-1">
+                <i data-lucide="plus" class="w-3 h-3"></i> Add Milestone
+              </button>
+            </div>
+            <div id="wPaymentsList" class="space-y-2">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Balance summary -->
+          <div class="p-3 bg-brand-dark rounded-xl border border-brand-border flex items-center justify-between text-xs">
+            <div>
+              <span class="text-slate-400">Total Paid: </span>
+              <span id="wFormTotalPaid" class="font-bold text-emerald-400">₹0</span>
+            </div>
+            <div>
+              <span class="text-slate-400">Pending Balance: </span>
+              <span id="wFormPendingBalance" class="font-bold text-rose-400">₹0</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-3 border-t border-brand-border">
+            <button type="button" onclick="closeWeddingModal()" class="px-4 py-2 rounded-xl border border-brand-border hover:bg-brand-hover text-slate-300 text-xs">Cancel</button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-brand-gold hover:bg-amber-400 text-brand-dark font-bold text-xs shadow-md">Save & Sync Cloud</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL 2: ADD / EDIT EDITING / OTHER WORKS     -->
+  <!-- ============================================== -->
+  <div id="editJobModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div class="bg-brand-card border border-brand-border w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden my-auto">
+      <div class="px-5 py-4 border-b border-brand-border flex items-center justify-between bg-brand-dark/50">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
+            <i data-lucide="scissors" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 id="editJobModalTitle" class="font-serif text-lg sm:text-xl font-bold text-white">Log Editing / Freelance Job</h3>
+            <p class="text-xs text-slate-400">Post-production milestone, delivery deadline & fees</p>
+          </div>
+        </div>
+        <button onclick="closeEditJobModal()" class="p-1 rounded-lg text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4 text-xs sm:text-sm">
+        <form id="editJobForm" onsubmit="saveEditJobForm(event)" class="space-y-4">
+          <input type="hidden" id="editJobId" value="" />
+
+          <div>
+            <label class="block text-slate-300 text-xs mb-1">Project Name / Scope <span class="text-rose-400">*</span></label>
+            <input type="text" id="ejTitle" required placeholder="e.g. Udaipur Destination 4K Teaser + 4 Reels" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-brand-gold" />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">Client / Studio Name <span class="text-rose-400">*</span></label>
+              <input type="text" id="ejClient" required placeholder="e.g. Alpha Productions / Kabir Verma" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-brand-gold" />
+            </div>
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">Service Type</label>
+              <select id="ejType" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-brand-gold">
+                <option value="Wedding Film Edit">Wedding Feature Film Edit</option>
+                <option value="Cinematic Teaser">Cinematic Teaser (1-3 min)</option>
+                <option value="Reels Package">Viral Instagram Reels Package</option>
+                <option value="Color Grading">DaVinci Color Grading (DI)</option>
+                <option value="Pre-Wedding Film">Pre-Wedding Concept Film</option>
+                <option value="Commercial / Corporate">Commercial / Brand Video</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">Delivery Deadline</label>
+              <input type="date" id="ejDeadline" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-brand-gold" />
+            </div>
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">Workflow Stage</label>
+              <select id="ejStatus" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-brand-gold">
+                <option value="Raw Received">Raw Received</option>
+                <option value="Rough Cut">Rough Cut</option>
+                <option value="In Review">Client Review / Revision</option>
+                <option value="Color Grading">Color Grading (DI)</option>
+                <option value="Delivered">Delivered & Closed</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">Total Agreed Fee (₹ INR) <span class="text-rose-400">*</span></label>
+              <div class="relative">
+                <span class="absolute left-3.5 top-2.5 text-brand-gold font-bold">₹</span>
+                <input type="number" id="ejFee" required min="0" step="500" placeholder="40000" class="w-full pl-8 pr-3 py-2.5 bg-brand-dark border border-brand-border rounded-xl text-white outline-none focus:border-brand-gold font-bold" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">Advance / Paid Amount (₹ INR)</label>
+              <div class="relative">
+                <span class="absolute left-3.5 top-2.5 text-emerald-400 font-bold">₹</span>
+                <input type="number" id="ejPaid" min="0" step="500" placeholder="20000" class="w-full pl-8 pr-3 py-2.5 bg-brand-dark border border-brand-border rounded-xl text-emerald-400 outline-none focus:border-brand-gold font-bold" />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 text-xs mb-1">Cloud Footage / Drive / Frame.io Link</label>
+            <input type="url" id="ejDrive" placeholder="https://drive.google.com/drive/folders/..." class="w-full bg-brand-dark border border-brand-border rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-brand-gold text-xs font-mono" />
+          </div>
+
+          <div>
+            <label class="block text-slate-300 text-xs mb-1">Notes & Music Selection</label>
+            <textarea id="ejNotes" rows="2" placeholder="e.g. Song reference, color palette, aspect ratios (16:9 and 9:16)" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3 py-2 text-white outline-none focus:border-brand-gold text-xs"></textarea>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-3 border-t border-brand-border">
+            <button type="button" onclick="closeEditJobModal()" class="px-4 py-2 rounded-xl border border-brand-border text-slate-300 text-xs">Cancel</button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-brand-gold text-brand-dark font-bold text-xs shadow-md">Save Project</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL 3: QUOTATION & PROPOSAL BUILDER         -->
+  <!-- ============================================== -->
+  <div id="quotationModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div class="bg-brand-card border border-brand-border w-full max-w-3xl rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden my-auto">
+      <div class="px-5 py-4 border-b border-brand-border flex items-center justify-between bg-brand-dark/50">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-brand-gold flex items-center justify-center">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 id="quotationModalTitle" class="font-serif text-lg sm:text-xl font-bold text-white">Create Quotation / Proposal</h3>
+            <p class="text-xs text-slate-400">Function-wise cinematography package proposal with GST</p>
+          </div>
+        </div>
+        <button onclick="closeQuotationModal()" class="p-1 rounded-lg text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4 text-xs sm:text-sm">
+        <form id="quotationForm" onsubmit="saveQuotationForm(event)" class="space-y-4">
+          <input type="hidden" id="quoteEditId" value="" />
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">Client / Couple Name <span class="text-rose-400">*</span></label>
+              <input type="text" id="qClient" required placeholder="e.g. Varun & Natasha" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-brand-gold" />
+            </div>
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">Destination / City</label>
+              <input type="text" id="qCity" placeholder="e.g. Goa / Jodhpur" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-brand-gold" />
+            </div>
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">Contact Phone</label>
+              <input type="tel" id="qPhone" placeholder="+91 98980 12345" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-brand-gold" />
+            </div>
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">Valid Until Date</label>
+              <input type="date" id="qValidUntil" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-brand-gold" />
+            </div>
+          </div>
+
+          <!-- Itemized Deliverables -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs uppercase font-bold text-brand-gold flex items-center gap-1.5">
+                <i data-lucide="layers" class="w-3.5 h-3.5"></i> Function & Equipment Breakdown
+              </h4>
+              <button type="button" onclick="addQuoteItemRow()" class="px-2.5 py-1 text-xs bg-brand-gold/15 text-brand-gold font-semibold rounded-lg flex items-center gap-1">
+                <i data-lucide="plus" class="w-3 h-3"></i> Add Service
+              </button>
+            </div>
+            <div id="qItemsList" class="space-y-2">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Tax & Discounts -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-brand-dark/70 rounded-xl border border-brand-border">
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">Discount (₹ INR)</label>
+              <input type="number" id="qDiscount" value="0" min="0" oninput="calcQuoteTotals()" class="w-full bg-brand-card border border-brand-border rounded-xl px-3 py-2 text-white outline-none focus:border-brand-gold" />
+            </div>
+            <div>
+              <label class="block text-slate-300 text-xs mb-1">Status</label>
+              <select id="qStatus" class="w-full bg-brand-card border border-brand-border rounded-xl px-3 py-2 text-white outline-none focus:border-brand-gold">
+                <option value="Draft">Draft</option>
+                <option value="Sent">Sent / In Discussion</option>
+                <option value="Accepted">Accepted / Booked</option>
+                <option value="Declined">Declined</option>
+              </select>
+            </div>
+            <div class="flex items-center pt-5">
+              <label class="flex items-center gap-2 cursor-pointer text-slate-300 text-xs">
+                <input type="checkbox" id="qGstToggle" onchange="calcQuoteTotals()" class="rounded text-brand-gold focus:ring-0" />
+                <span>Apply 18% GST (Tax)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Grand Total Preview -->
+          <div class="p-3 bg-brand-dark rounded-xl border border-brand-border flex items-center justify-between font-semibold">
+            <span class="text-xs text-slate-400">Total Quoted Package:</span>
+            <span id="qCalculatedTotal" class="text-base text-brand-gold font-bold">₹0</span>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 text-xs mb-1">Payment Schedule & Terms</label>
+            <textarea id="qTerms" rows="2" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-brand-gold">40% advance to block dates. 40% on wedding ceremony. 20% upon 4K master delivery.</textarea>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-3 border-t border-brand-border">
+            <button type="button" onclick="closeQuotationModal()" class="px-4 py-2 rounded-xl border border-brand-border text-slate-300 text-xs">Cancel</button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-brand-gold text-brand-dark font-bold text-xs shadow-md">Save Proposal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL 4: MASTER PRINT PREVIEW (A4 PDF/INVOICE) -->
+  <!-- ============================================== -->
+  <div id="printModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    <div class="bg-brand-dark border border-brand-border w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[96vh] overflow-hidden my-auto">
+      <div class="px-5 py-3.5 bg-brand-card border-b border-brand-border flex items-center justify-between flex-wrap gap-2 shrink-0 no-print">
+        <div class="flex items-center gap-2">
+          <span class="p-1.5 rounded-lg bg-brand-gold/20 text-brand-gold"><i data-lucide="printer" class="w-4 h-4"></i></span>
+          <h3 id="printModalTitle" class="font-serif text-lg font-bold text-white">Document Preview</h3>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="window.print()" class="px-4 py-2 bg-brand-gold hover:bg-amber-400 text-brand-dark font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 transition">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            <span>Print / Save PDF (A4)</span>
+          </button>
+          <button onclick="closePrintModal()" class="p-1.5 rounded-xl text-slate-400 hover:text-white bg-brand-dark border border-brand-border">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Printable A4 Paper Container -->
+      <div class="p-2 sm:p-6 overflow-y-auto flex justify-center bg-brand-dark">
+        <div id="printable-container" class="w-full max-w-3xl bg-white text-slate-900 rounded-xl p-6 sm:p-10 shadow-2xl space-y-6">
+          
+          <!-- Header Branding -->
+          <div class="flex flex-col sm:flex-row justify-between items-start border-b border-slate-200 pb-5 gap-4">
+            <div>
+              <h1 id="printStudioName" class="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-slate-950">THE ROYAL REEL CINEMAS</h1>
+              <p id="printStudioTag" class="text-xs text-amber-800 font-semibold uppercase tracking-wider">Luxury Wedding Films & High-Definition Storytellers</p>
+              <div class="text-xs text-slate-600 mt-2 space-y-0.5">
+                <p id="printStudioPhone">+91 98200 87654</p>
+                <p id="printStudioEmail">films@royalreelstudio.com</p>
+                <p id="printStudioCity">Mumbai & Destination Worldwide</p>
+                <p id="printStudioGst" class="text-slate-500 font-mono">GSTIN: 27AABCT1332F1Z1</p>
+              </div>
+            </div>
+
+            <div class="sm:text-right">
+              <span id="printDocBadge" class="inline-block px-3 py-1 bg-amber-50 text-amber-900 border border-amber-300 rounded-md text-xs font-bold uppercase tracking-widest">
+                TAX INVOICE
+              </span>
+              <p class="text-xs text-slate-500 mt-2">Ref #: <strong id="printDocRef" class="text-slate-900 font-mono">CINE-2026-081</strong></p>
+              <p class="text-xs text-slate-500">Date: <strong id="printDocDate" class="text-slate-900">27 Oct 2026</strong></p>
+            </div>
+          </div>
+
+          <!-- Client & Destination Box -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+            <div>
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">BILLED TO / CLIENT</p>
+              <h3 id="printClientName" class="text-base font-serif font-bold text-slate-900 mt-0.5">Aarav & Diya</h3>
+              <p id="printClientPhone" class="text-slate-600">+91 98765 43210</p>
+            </div>
+            <div class="sm:text-right">
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">EVENT LOCATION</p>
+              <h4 id="printProjectLocation" class="text-sm font-bold text-slate-800 mt-0.5">Udaipur, Rajasthan</h4>
+              <p id="printProjectDates" class="text-slate-600">Multi-Day Cinematography Coverage</p>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <div>
+            <table class="w-full text-left text-xs border border-slate-200 rounded-lg overflow-hidden">
+              <thead class="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="py-2.5 px-3">Service & Function Item</th>
+                  <th class="py-2.5 px-3 text-center w-16">Qty</th>
+                  <th class="py-2.5 px-3 text-right w-32">Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody id="printDocItems" class="divide-y divide-slate-100">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Bank & Totals Section -->
+          <div class="flex flex-col sm:flex-row justify-between gap-6 pt-2">
+            <!-- Payment QR & Bank Settlement -->
+            <div class="sm:w-1/2 p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl text-xs space-y-1.5">
+              <p class="font-bold text-amber-950 flex items-center gap-1.5">
+                <i data-lucide="qr-code" class="w-3.5 h-3.5"></i> Bank & UPI Settlement
+              </p>
+              <p class="text-slate-700">UPI ID / VPA: <strong id="printUpiId" class="text-slate-900 font-mono">royalreel@okhdfcbank</strong></p>
+              <p class="text-slate-700">Account: <strong id="printBankDetails" class="text-slate-900 font-mono">HDFC Bank • A/c 50200034120019</strong></p>
+              <p class="text-[10px] text-slate-500">Scan via GPay, PhonePe, Paytm or NEFT/IMPS transfer.</p>
+            </div>
+
+            <!-- Financials Summary -->
+            <div class="sm:w-1/2 space-y-2 text-xs">
+              <div class="flex justify-between text-slate-600">
+                <span>Subtotal:</span>
+                <span id="printSubtotal" class="font-medium text-slate-900">₹0</span>
+              </div>
+              <div id="printDiscountRow" class="hidden flex justify-between text-rose-600">
+                <span>Discount:</span>
+                <span id="printDiscountVal">- ₹0</span>
+              </div>
+              <div id="printGstRow" class="hidden flex justify-between text-slate-600">
+                <span>GST (18%):</span>
+                <span id="printGstVal">₹0</span>
+              </div>
+              <div class="flex justify-between text-slate-800 font-semibold pt-1 border-t border-slate-200">
+                <span>Total Contract Value:</span>
+                <span id="printGrandTotal" class="font-bold text-slate-950 text-sm">₹0</span>
+              </div>
+              <div id="printPaidRow" class="flex justify-between text-emerald-700">
+                <span>Amount Paid:</span>
+                <span id="printTotalPaid">- ₹0</span>
+              </div>
+              <div class="flex justify-between p-2.5 bg-slate-950 text-white rounded-lg font-bold text-sm">
+                <span id="printFinalLabel">Net Balance Payable:</span>
+                <span id="printFinalAmount" class="text-amber-300">₹0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t border-slate-200 pt-3 text-[10px] text-slate-500 space-y-1">
+            <p id="printDocTerms"><strong>Terms:</strong> Standard studio terms apply. All raw footage delivered post complete clearance.</p>
+            <p class="text-center font-serif text-xs text-slate-600 pt-2 italic">Preserving timeless emotions into cinematic memories.</p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL 5: WHATSAPP PENDING REMINDERS GENERATOR  -->
+  <!-- ============================================== -->
+  <div id="remindersModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div class="bg-brand-card border border-brand-border w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden my-auto">
+      <div class="px-5 py-4 border-b border-brand-border flex items-center justify-between bg-brand-dark/50">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <i data-lucide="message-square" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-serif text-lg font-bold text-white">Pending Payment Reminders</h3>
+            <p class="text-xs text-slate-400">One-click WhatsApp drafts for clients with pending dues</p>
+          </div>
+        </div>
+        <button onclick="closeRemindersModal()" class="p-1 rounded-lg text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4 text-xs" id="remindersListContainer">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL 6: STUDIO PROFILE SETTINGS              -->
+  <!-- ============================================== -->
+  <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div class="bg-brand-card border border-brand-border w-full max-w-lg rounded-2xl shadow-2xl p-6 space-y-4 my-auto">
+      <div class="flex items-center justify-between border-b border-brand-border pb-3">
+        <h3 class="font-serif text-lg font-bold text-white flex items-center gap-2">
+          <i data-lucide="settings" class="w-5 h-5 text-brand-gold"></i>
+          <span>Studio Profile & Invoicing Info</span>
+        </h3>
+        <button onclick="closeSettingsModal()" class="p-1 rounded-lg text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="settingsForm" onsubmit="saveStudioSettings(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-300 mb-1">Studio / Brand Name</label>
+          <input type="text" id="setStudioName" required class="w-full bg-brand-dark border border-brand-border rounded-xl px-3 py-2 text-white outline-none focus:border-brand-gold" />
+        </div>
+        <div>
+          <label class="block text-slate-300 mb-1">Tagline</label>
+          <input type="text" id="setStudioTag" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3 py-2 text-white outline-none focus:border-brand-gold" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 mb-1">Contact Phone</label>
+            <input type="text" id="setStudioPhone" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3 py-2 text-white outline-none focus:border-brand-gold" />
+          </div>
+          <div>
+            <label class="block text-slate-300 mb-1">City / Base</label>
+            <input type="text" id="setStudioCity" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3 py-2 text-white outline-none focus:border-brand-gold" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-slate-300 mb-1">Studio Email</label>
+          <input type="email" id="setStudioEmail" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3 py-2 text-white outline-none focus:border-brand-gold" />
+        </div>
+        <div>
+          <label class="block text-slate-300 mb-1">GSTIN / Tax ID</label>
+          <input type="text" id="setStudioGst" placeholder="e.g. 27AABCT1332F1Z1" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3 py-2 text-white outline-none focus:border-brand-gold" />
+        </div>
+        <div>
+          <label class="block text-slate-300 mb-1">UPI ID (VPA)</label>
+          <input type="text" id="setStudioUpi" placeholder="studio@okhdfcbank" class="w-full bg-brand-dark border border-brand-border rounded-xl px-3 py-2 text-white outline-none focus:border-brand-gold font-mono" />
+        </div>
+        <div>
+          <label class="block text-slate-300 mb-1">Bank Name, Account & IFSC</label>
+          <input type="text" id="setStudioBank" placeholder="HDFC Bank - A/c 5020... IFSC HDFC0000..." class="w-full bg-brand-dark border border-brand-border rounded-xl px-3 py-2 text-white outline-none focus:border-brand-gold" />
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3">
+          <button type="button" onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl border border-brand-border text-slate-300">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-brand-gold text-brand-dark font-bold">Save Settings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed bottom-20 md:bottom-6 right-4 z-50 bg-brand-gold text-brand-dark px-4 py-2.5 rounded-xl shadow-xl font-bold text-xs flex items-center gap-2 transform translate-y-20 opacity-0 transition duration-300 pointer-events-none">
+    <i data-lucide="check-circle" class="w-4 h-4"></i>
+    <span id="toastMsg">Synced to Cloud</span>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- JAVASCRIPT: AUTH & MULTI-DEVICE CLOUD SYNC ENGINE        -->
+  <!-- ======================================================== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      createUserWithEmailAndPassword, 
+      signOut, 
+      onAuthStateChanged,
+      sendPasswordResetEmail
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      doc, 
+      setDoc, 
+      onSnapshot 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    /* Global Environment Firebase Variables */
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'cine-wedding-crm-v4';
+    let auth = null;
+    let db = null;
+    let currentUser = null;
+    let unregisterSnapshot = null;
+
+    let authMode = 'login'; // 'login' or 'register'
+    let currentTab = 'dashboard';
+    let dashboardRangeFilter = 'all';
+    let quoteFilter = 'ALL';
+
+    /* User state */
+    let state = {
+      weddings: [],
+      editingJobs: [],
+      quotations: [],
+      studioProfile: {
+        name: 'The Royal Reel Cinematography',
+        tagline: 'Luxury Wedding Films & High-Definition Storytellers',
+        phone: '+91 98200 87654',
+        email: 'films@royalreelstudio.com',
+        city: 'Mumbai & Destination Worldwide',
+        gstin: '27AABCT1332F1Z1',
+        upiId: 'royalreel@okhdfcbank',
+        bankDetails: 'HDFC Bank Ltd • Current A/c 50200034120019 • IFSC HDFC0000128'
+      }
+    };
+
+    function getOffsetDate(days) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      return d.toISOString().split('T')[0];
+    }
+
+    // Default Seed Data for newly registered Cinematographers
+    function getDefaultUserData(studioName = 'The Royal Cinema') {
+      return {
+        weddings: [
+          {
+            id: 'w_1',
+            coupleNames: 'Aarav & Diya',
+            phone: '+91 98201 44552',
+            city: 'Udaipur, Rajasthan',
+            workflowStatus: 'Upcoming Shoot',
+            totalAmount: 280000,
+            functions: [
+              { name: 'Mehendi & Haldi', date: getOffsetDate(2), venue: 'The Oberoi Udaivilas, Poolside' },
+              { name: 'Grand Sangeet & Cocktails', date: getOffsetDate(3), venue: 'Zenana Mahal, City Palace' },
+              { name: 'Wedding Ceremony & Pheras', date: getOffsetDate(4), venue: 'Jagmandir Island Palace' }
+            ],
+            payments: [
+              { id: 'p_1', title: 'Booking Token Advance', amount: 80000, date: getOffsetDate(-20), mode: 'UPI' },
+              { id: 'p_2', title: 'Pre-Production Installment', amount: 60000, date: getOffsetDate(-5), mode: 'NEFT' }
+            ]
+          },
+          {
+            id: 'w_2',
+            coupleNames: 'Kabir & Meera',
+            phone: '+91 98112 39988',
+            city: 'Mumbai, Maharashtra',
+            workflowStatus: 'In Post-Production',
+            totalAmount: 185000,
+            functions: [
+              { name: 'Anand Karaj', date: getOffsetDate(-10), venue: 'Gurudwara Dhan Pothohar' },
+              { name: 'Reception Gala', date: getOffsetDate(-9), venue: 'JW Marriott Juhu' }
+            ],
+            payments: [
+              { id: 'p_3', title: 'Booking Advance', amount: 60000, date: getOffsetDate(-45), mode: 'UPI' },
+              { id: 'p_4', title: 'Wedding Day Payment', amount: 75000, date: getOffsetDate(-9), mode: 'NEFT' }
+            ]
+          }
+        ],
+        editingJobs: [
+          {
+            id: 'ej_1',
+            title: 'Destination Wedding 4K Highlight Film (15 mins)',
+            client: 'DreamFilms Studio (Delhi)',
+            type: 'Wedding Film Edit',
+            deadline: getOffsetDate(4),
+            status: 'Rough Cut',
+            totalFee: 45000,
+            paidAmount: 20000,
+            driveLink: 'https://drive.google.com/drive/folders/sample-footage',
+            notes: 'Grading LUT: Warm 35mm film aesthetic. Include upbeat Sangeet sequence.'
+          },
+          {
+            id: 'ej_2',
+            title: 'Viral Instagram Reels Bundle (6 Reels)',
+            client: 'Aarav & Diya',
+            type: 'Reels Package',
+            deadline: getOffsetDate(7),
+            status: 'In Review',
+            totalFee: 24000,
+            paidAmount: 12000,
+            driveLink: 'https://frame.io/project/sample-reels',
+            notes: 'Vertical 9:16 cuts, trending audio, high-speed transitions.'
+          }
+        ],
+        quotations: [
+          {
+            id: 'qt_1',
+            client: 'Siddharth & Kiara',
+            city: 'Jaisalmer, Rajasthan',
+            phone: '+91 99110 55443',
+            validUntil: getOffsetDate(18),
+            status: 'Sent',
+            discount: 10000,
+            applyGst: true,
+            terms: '40% advance to block dates. 40% on wedding ceremony. 20% on final 4K master delivery.',
+            items: [
+              { name: '3-Day Luxury Cinematography (2x Senior Cinematographers + Gimbal)', amount: 180000 },
+              { name: 'Cinematic 4K Drone Aerial Pilot across all functions', amount: 45000 },
+              { name: '1-Minute Same-Day Edit (SDE) Teaser for Reception', amount: 25000 },
+              { name: '4K Feature Film (30 Mins) + 5 Reels Pack', amount: 60000 }
+            ]
+          }
+        ],
+        studioProfile: {
+          name: studioName || 'The Royal Reel Cinematography',
+          tagline: 'Luxury Wedding Films & High-Definition Storytellers',
+          phone: '+91 98200 87654',
+          email: 'films@royalreelstudio.com',
+          city: 'Mumbai & Destination Worldwide',
+          gstin: '27AABCT1332F1Z1',
+          upiId: 'royalreel@okhdfcbank',
+          bankDetails: 'HDFC Bank Ltd • Current A/c 50200034120019 • IFSC HDFC0000128'
+        }
+      };
+    }
+
+    /* ========================================================
+       FIREBASE AUTH INITIALIZATION & PERSISTENCE
+       ======================================================== */
+    async function initAuthAndApp() {
+      try {
+        if (typeof __firebase_config !== 'undefined') {
+          const config = JSON.parse(__firebase_config);
+          const app = initializeApp(config);
+          auth = getAuth(app);
+          db = getFirestore(app);
+
+          // Listen to session changes
+          onAuthStateChanged(auth, async (user) => {
+            if (user) {
+              currentUser = user;
+              onUserSignedIn(user);
+            } else {
+              currentUser = null;
+              onUserSignedOut();
+            }
+          });
+        } else {
+          // Fallback if hosted on free hosting without predefined config
+          initLocalAuthSystem();
+        }
+      } catch (err) {
+        console.warn('Firebase init error, using local secure vault:', err);
+        initLocalAuthSystem();
+      }
+    }
+
+    // Local authentication fallback for direct static deployments
+    function initLocalAuthSystem() {
+      const activeSession = localStorage.getItem('cinesync_active_user');
+      if (activeSession) {
+        currentUser = JSON.parse(activeSession);
+        onUserSignedIn(currentUser);
+      } else {
+        onUserSignedOut();
+      }
+    }
+
+    function onUserSignedIn(user) {
+      document.getElementById('authScreen').classList.add('hidden');
+      const email = user.email || 'cinematographer';
+      document.getElementById('navUserDisplay').textContent = email.split('@')[0];
+      document.getElementById('navUserDisplay').title = email;
+
+      // Start listening to the logged-in user's private data strictly adhering to RULE 1
+      startUserCloudSync(user.uid);
+    }
+
+    function onUserSignedOut() {
+      if (unregisterSnapshot) {
+        unregisterSnapshot();
+        unregisterSnapshot = null;
+      }
+      document.getElementById('authScreen').classList.remove('hidden');
+      document.getElementById('navUserDisplay').textContent = 'Guest';
+      updateSyncStatus(false, 'Logged Out');
+    }
+
+    /* Realtime listener for authenticated user's private path */
+    function startUserCloudSync(uid) {
+      updateSyncStatus(false, 'Connecting...');
+      if (db && uid) {
+        // Strict Path compliance: /artifacts/{appId}/users/{userId}/{collectionName}
+        const userDocRef = doc(db, 'artifacts', appId, 'users', uid, 'studio_data', 'profile_and_records');
+
+        if (unregisterSnapshot) unregisterSnapshot();
+
+        unregisterSnapshot = onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            state.weddings = data.weddings || [];
+            state.editingJobs = data.editingJobs || [];
+            state.quotations = data.quotations || [];
+            if (data.studioProfile) state.studioProfile = data.studioProfile;
+            updateSyncStatus(true, 'Cloud Synced');
+            updateAllUI();
+          } else {
+            // First time user registration: seed data
+            const initialData = getDefaultUserData(document.getElementById('authStudioName')?.value || 'The Royal Cinema');
+            state.weddings = initialData.weddings;
+            state.editingJobs = initialData.editingJobs;
+            state.quotations = initialData.quotations;
+            state.studioProfile = initialData.studioProfile;
+            syncToCloud();
+          }
+        }, (err) => {
+          console.warn('Snapshot listener error:', err);
+          loadLocalUserRecords(uid);
+        });
+      } else {
+        loadLocalUserRecords(uid);
+      }
+    }
+
+    function loadLocalUserRecords(uid) {
+      const key = `cinesync_user_data_${uid}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          state.weddings = parsed.weddings || [];
+          state.editingJobs = parsed.editingJobs || [];
+          state.quotations = parsed.quotations || [];
+          if (parsed.studioProfile) state.studioProfile = parsed.studioProfile;
+        } catch (e) {
+          assignDefaultData();
+        }
+      } else {
+        assignDefaultData();
+      }
+      updateSyncStatus(true, 'Local Synced');
+      updateAllUI();
+    }
+
+    function assignDefaultData() {
+      const initialData = getDefaultUserData();
+      state.weddings = initialData.weddings;
+      state.editingJobs = initialData.editingJobs;
+      state.quotations = initialData.quotations;
+      state.studioProfile = initialData.studioProfile;
+    }
+
+    async function syncToCloud() {
+      if (!currentUser) return;
+      updateSyncStatus(false, 'Syncing...');
+
+      try {
+        if (db && currentUser.uid) {
+          const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'studio_data', 'profile_and_records');
+          await setDoc(userDocRef, {
+            weddings: state.weddings,
+            editingJobs: state.editingJobs,
+            quotations: state.quotations,
+            studioProfile: state.studioProfile,
+            lastUpdated: new Date().toISOString()
+          });
+          updateSyncStatus(true, 'Cloud Synced');
+        } else {
+          localStorage.setItem(`cinesync_user_data_${currentUser.uid}`, JSON.stringify(state));
+          updateSyncStatus(true, 'Local Synced');
+        }
+      } catch (err) {
+        console.error('Error updating document:', err);
+        localStorage.setItem(`cinesync_user_data_${currentUser.uid}`, JSON.stringify(state));
+        updateSyncStatus(true, 'Saved Locally');
+      }
+
+      showToast('Changes synchronized across devices');
+      updateAllUI();
+    }
+
+    function updateSyncStatus(isSynced, label) {
+      const syncEl = document.getElementById('cloudSyncIndicator');
+      const textEl = document.getElementById('syncText');
+      if (isSynced) {
+        syncEl.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/25';
+        textEl.textContent = label || 'Cloud Synced';
+      } else {
+        syncEl.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/25';
+        textEl.textContent = label || 'Syncing...';
+      }
+    }
+
+    /* ========================================================
+       AUTH FORM SUBMISSION: LOGIN & REGISTER HANDLER
+       ======================================================== */
+    window.toggleAuthMode = function(mode) {
+      authMode = mode;
+      const tabLogin = document.getElementById('tabAuthLoginBtn');
+      const tabReg = document.getElementById('tabAuthRegisterBtn');
+      const studioGroup = document.getElementById('authStudioNameGroup');
+      const submitText = document.getElementById('authSubmitText');
+      const alertBox = document.getElementById('authAlert');
+      alertBox.classList.add('hidden');
+
+      if (mode === 'login') {
+        tabLogin.className = 'py-2 text-xs font-bold rounded-xl transition bg-brand-gold text-brand-dark shadow-md';
+        tabReg.className = 'py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl transition';
+        studioGroup.classList.add('hidden');
+        submitText.textContent = 'Sign In to Dashboard';
+      } else {
+        tabReg.className = 'py-2 text-xs font-bold rounded-xl transition bg-brand-gold text-brand-dark shadow-md';
+        tabLogin.className = 'py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl transition';
+        studioGroup.classList.remove('hidden');
+        submitText.textContent = 'Create Studio Account & Start';
+      }
+      lucide.createIcons();
+    };
+
+    window.togglePasswordVisibility = function() {
+      const input = document.getElementById('authPassword');
+      const icon = document.getElementById('passwordEyeIcon');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.setAttribute('data-lucide', 'eye-off');
+      } else {
+        input.type = 'password';
+        icon.setAttribute('data-lucide', 'eye');
+      }
+      lucide.createIcons();
+    };
+
+    window.handleAuthSubmit = async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const studioName = document.getElementById('authStudioName').value.trim() || 'My Cinematography Studio';
+      const alertBox = document.getElementById('authAlert');
+      const alertMsg = document.getElementById('authAlertMsg');
+      const submitBtn = document.getElementById('authSubmitBtn');
+
+      alertBox.classList.add('hidden');
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-75');
+
+      try {
+        if (auth) {
+          if (authMode === 'login') {
+            await signInWithEmailAndPassword(auth, email, password);
+          } else {
+            const userCred = await createUserWithEmailAndPassword(auth, email, password);
+            // Save initial studio profile name
+            if (userCred.user) {
+              state.studioProfile.name = studioName;
+            }
+          }
+        } else {
+          // Static local storage auth fallback
+          let usersDb = JSON.parse(localStorage.getItem('cinesync_users_vault') || '{}');
+          if (authMode === 'register') {
+            if (usersDb[email]) {
+              throw new Error('This email is already registered. Please Sign In.');
+            }
+            const newUid = 'usr_' + Date.now();
+            usersDb[email] = { uid: newUid, email, password, studioName };
+            localStorage.setItem('cinesync_users_vault', JSON.stringify(usersDb));
+            currentUser = { uid: newUid, email };
+            localStorage.setItem('cinesync_active_user', JSON.stringify(currentUser));
+            state = getDefaultUserData(studioName);
+            localStorage.setItem(`cinesync_user_data_${newUid}`, JSON.stringify(state));
+            onUserSignedIn(currentUser);
+          } else {
+            const account = usersDb[email];
+            if (!account || account.password !== password) {
+              throw new Error('Invalid email or password.');
+            }
+            currentUser = { uid: account.uid, email: account.email };
+            localStorage.setItem('cinesync_active_user', JSON.stringify(currentUser));
+            onUserSignedIn(currentUser);
+          }
+        }
+        showToast('Signed in successfully!');
+      } catch (err) {
+        alertBox.classList.remove('hidden');
+        alertMsg.textContent = err.message || 'Authentication error. Please check your credentials.';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-75');
+      }
+    };
+
+    window.handleUserLogout = async function() {
+      if (confirm('Are you sure you want to sign out? Your records will remain securely stored.')) {
+        try {
+          if (auth) {
+            await signOut(auth);
+          } else {
+            localStorage.removeItem('cinesync_active_user');
+            currentUser = null;
+            onUserSignedOut();
+          }
+          showToast('Signed out successfully.');
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+
+    window.forgotPasswordPrompt = async function() {
+      const email = document.getElementById('authEmail').value.trim();
+      if (!email) {
+        alert('Please enter your email in the email field first.');
+        return;
+      }
+      try {
+        if (auth) {
+          await sendPasswordResetEmail(auth, email);
+          alert(`Password reset instructions sent to ${email}`);
+        } else {
+          alert('Local mode: please contact your studio admin.');
+        }
+      } catch (err) {
+        alert(err.message || 'Error sending password reset email.');
+      }
+    };
+
+    /* ========================================================
+       CURRENCY & METRIC FORMATTERS (INDIAN RUPEES ₹)
+       ======================================================== */
+    function formatINR(amount) {
+      const num = Number(amount) || 0;
+      return '₹' + num.toLocaleString('en-IN');
+    }
+
+    function formatDateDisplay(dStr) {
+      if (!dStr) return 'TBD';
+      const d = new Date(dStr);
+      if (isNaN(d)) return dStr;
+      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function getWeddingTotals(w) {
+      const paid = (w.payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      const pending = Math.max(0, (Number(w.totalAmount) || 0) - paid);
+      return { paid, pending, total: Number(w.totalAmount) || 0 };
+    }
+
+    function getEditingTotals(ej) {
+      const total = Number(ej.totalFee) || 0;
+      const paid = Number(ej.paidAmount) || 0;
+      const pending = Math.max(0, total - paid);
+      return { total, paid, pending };
+    }
+
+    function getQuoteGrandTotal(q) {
+      const subtotal = (q.items || []).reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
+      const discount = Number(q.discount) || 0;
+      const taxable = Math.max(0, subtotal - discount);
+      const gst = q.applyGst ? Math.round(taxable * 0.18) : 0;
+      return taxable + gst;
+    }
+
+    /* ========================================================
+       UI NAVIGATION TABS
+       ======================================================== */
+    window.switchTab = function(tabName) {
+      currentTab = tabName;
+      ['dashboard', 'weddings', 'editing', 'quotations', 'financials'].forEach(t => {
+        const sec = document.getElementById(`tab-${t}`);
+        if (sec) sec.classList.toggle('hidden', t !== tabName);
+
+        const navBtn = document.getElementById(`nav-${t}`);
+        if (navBtn) {
+          if (t === tabName) {
+            navBtn.className = 'w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-brand-gold text-brand-dark transition shadow-md shadow-brand-gold/10';
+          } else {
+            navBtn.className = 'w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-brand-hover transition';
+          }
+        }
+
+        const mobBtn = document.getElementById(`mob-${t}`);
+        if (mobBtn) {
+          if (t === tabName) {
+            mobBtn.className = 'flex flex-col items-center gap-1 text-brand-gold font-semibold';
+          } else {
+            mobBtn.className = 'flex flex-col items-center gap-1 text-slate-400';
+          }
+        }
+      });
+
+      updateAllUI();
+      lucide.createIcons();
+    };
+
+    function updateAllUI() {
+      document.getElementById('sidebarStudioName').textContent = state.studioProfile.name || 'Studio OS';
+      document.getElementById('sidebarStudioTag').textContent = state.studioProfile.tagline || 'Cinematography';
+
+      if (currentTab === 'dashboard') renderDashboard();
+      if (currentTab === 'weddings') renderWeddingsList();
+      if (currentTab === 'editing') renderEditingList();
+      if (currentTab === 'quotations') renderQuotationsList();
+      if (currentTab === 'financials') renderFinancialsTab();
+
+      lucide.createIcons();
+    }
+
+    /* ========================================================
+       TAB 1: DASHBOARD
+       ======================================================== */
+    window.setDashboardRange = function(range) {
+      dashboardRangeFilter = range;
+      const btnAll = document.getElementById('range-all');
+      const btn14 = document.getElementById('range-14d');
+      if (range === 'all') {
+        btnAll.className = 'px-2.5 py-1 rounded-lg bg-brand-gold text-brand-dark font-bold';
+        btn14.className = 'px-2.5 py-1 rounded-lg bg-brand-card hover:bg-brand-hover text-slate-300';
+      } else {
+        btn14.className = 'px-2.5 py-1 rounded-lg bg-brand-gold text-brand-dark font-bold';
+        btnAll.className = 'px-2.5 py-1 rounded-lg bg-brand-card hover:bg-brand-hover text-slate-300';
+      }
+      renderDashboard();
+    };
+
+    function renderDashboard() {
+      let totalRev = 0;
+      let totalPaid = 0;
+      let totalPending = 0;
+
+      let weddingPendingTotal = 0;
+      state.weddings.forEach(w => {
+        const fin = getWeddingTotals(w);
+        totalRev += fin.total;
+        totalPaid += fin.paid;
+        totalPending += fin.pending;
+        weddingPendingTotal += fin.pending;
+      });
+
+      let editPendingTotal = 0;
+      let activeEditJobsCount = 0;
+      state.editingJobs.forEach(ej => {
+        const fin = getEditingTotals(ej);
+        totalRev += fin.total;
+        totalPaid += fin.paid;
+        totalPending += fin.pending;
+        editPendingTotal += fin.pending;
+        if (ej.status !== 'Delivered') activeEditJobsCount++;
+      });
+
+      document.getElementById('kpi-total-revenue').textContent = formatINR(totalRev);
+      document.getElementById('kpi-total-counts').textContent = `${state.weddings.length} Weddings • ${state.editingJobs.length} Edits`;
+
+      document.getElementById('kpi-total-received').textContent = formatINR(totalPaid);
+      const collectionPercent = totalRev > 0 ? Math.round((totalPaid / totalRev) * 100) : 0;
+      document.getElementById('kpi-received-percent').textContent = `${collectionPercent}% collected into bank/cash`;
+
+      document.getElementById('kpi-total-pending').textContent = formatINR(totalPending);
+      document.getElementById('kpi-pending-breakdown').textContent = `₹${(weddingPendingTotal/1000).toFixed(0)}k shoots • ₹${(editPendingTotal/1000).toFixed(0)}k edits`;
+
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+
+      const shootEvents = [];
+      state.weddings.forEach(w => {
+        const fin = getWeddingTotals(w);
+        (w.functions || []).forEach(f => {
+          if (!f.date) return;
+          const fDate = new Date(f.date);
+          fDate.setHours(23, 59, 59, 999);
+          if (fDate >= now) {
+            shootEvents.push({
+              weddingId: w.id,
+              couple: w.coupleNames,
+              city: w.city,
+              phone: w.phone,
+              funcName: f.name,
+              date: f.date,
+              venue: f.venue,
+              pending: fin.pending
+            });
+          }
+        });
+      });
+
+      shootEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      document.getElementById('kpi-upcoming-count').textContent = shootEvents.length;
+      document.getElementById('kpi-editing-active-count').textContent = `${activeEditJobsCount} active editing jobs`;
+      document.getElementById('upcomingBadgePill').textContent = shootEvents.length;
+
+      let filteredShoots = shootEvents;
+      if (dashboardRangeFilter === '14d') {
+        const limitDate = new Date();
+        limitDate.setDate(limitDate.getDate() + 14);
+        filteredShoots = shootEvents.filter(ev => new Date(ev.date) <= limitDate);
+      }
+
+      const container = document.getElementById('dashboardUpcomingShootsList');
+      if (filteredShoots.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center bg-brand-card rounded-2xl border border-brand-border text-slate-400">
+            <i data-lucide="calendar-check" class="w-8 h-8 mx-auto text-slate-500 mb-2"></i>
+            <p class="text-xs font-semibold">No upcoming wedding shoot dates found in this range.</p>
+            <button onclick="openNewWeddingModal()" class="mt-2 text-xs text-brand-gold hover:underline font-bold">+ Log Wedding Date</button>
+          </div>
+        `;
+      } else {
+        container.innerHTML = filteredShoots.map(item => {
+          const shootDate = new Date(item.date);
+          const diffDays = Math.ceil((shootDate - now) / (1000 * 60 * 60 * 24));
+
+          let countdownLabel = `In ${diffDays} days`;
+          let badgeColor = 'bg-brand-dark text-slate-300 border border-brand-border';
+
+          if (diffDays === 0) {
+            countdownLabel = 'Today!';
+            badgeColor = 'bg-rose-500 text-white font-bold animate-pulse';
+          } else if (diffDays === 1) {
+            countdownLabel = 'Tomorrow';
+            badgeColor = 'bg-amber-500 text-brand-dark font-black';
+          } else if (diffDays <= 7) {
+            countdownLabel = `In ${diffDays} days`;
+            badgeColor = 'bg-brand-gold/15 text-brand-gold border border-brand-gold/30 font-bold';
+          }
+
+          const isCleared = item.pending === 0;
+
+          return `
+            <div class="p-4 bg-brand-card rounded-2xl border border-brand-border hover:border-brand-gold/40 transition flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex items-start gap-3.5">
+                <div class="p-2.5 rounded-xl bg-brand-dark border border-brand-border flex flex-col items-center justify-center min-w-[56px] text-center">
+                  <span class="text-[9px] uppercase font-bold text-brand-gold">${shootDate.toLocaleDateString('en-IN', { month: 'short' })}</span>
+                  <span class="text-lg font-bold text-white font-serif leading-none mt-1">${shootDate.getDate()}</span>
+                  <span class="text-[9px] text-slate-400 mt-1">${shootDate.toLocaleDateString('en-IN', { weekday: 'short' })}</span>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <h4 class="font-serif text-base font-bold text-white">${item.couple}</h4>
+                    <span class="px-2 py-0.5 rounded-md text-[10px] ${badgeColor}">${countdownLabel}</span>
+                  </div>
+                  <div class="flex items-center gap-3 text-xs text-slate-300 flex-wrap mt-1">
+                    <span class="text-brand-gold font-medium flex items-center gap-1">
+                      <i data-lucide="sparkles" class="w-3 h-3"></i> ${item.funcName}
+                    </span>
+                    <span class="text-slate-400 flex items-center gap-1">
+                      <i data-lucide="map-pin" class="w-3 h-3"></i> ${item.venue || item.city}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-brand-border">
+                <div class="text-left md:text-right">
+                  <span class="text-[10px] text-slate-400 block">Pending Balance</span>
+                  <span class="text-xs font-bold ${isCleared ? 'text-emerald-400' : 'text-rose-400'}">${isCleared ? 'Cleared' : formatINR(item.pending)}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button onclick="previewWeddingInvoice('${item.weddingId}')" class="px-2.5 py-1.5 rounded-lg bg-brand-dark hover:bg-brand-gold hover:text-brand-dark text-slate-200 border border-brand-border transition text-xs font-semibold flex items-center gap-1">
+                    <i data-lucide="receipt" class="w-3.5 h-3.5"></i>
+                    <span>Invoice</span>
+                  </button>
+                  <button onclick="editWedding('${item.weddingId}')" class="p-1.5 rounded-lg bg-brand-dark hover:bg-brand-hover text-slate-300 border border-brand-border">
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Render Active Editing Mini Preview
+      const editQueueContainer = document.getElementById('dashboardEditingQueue');
+      const activeEdits = state.editingJobs.filter(ej => ej.status !== 'Delivered').slice(0, 3);
+
+      if (activeEdits.length === 0) {
+        editQueueContainer.innerHTML = `
+          <div class="col-span-full p-4 text-center bg-brand-card rounded-xl border border-brand-border text-slate-400 text-xs">
+            No active post-production jobs. All delivered!
+          </div>
+        `;
+      } else {
+        editQueueContainer.innerHTML = activeEdits.map(ej => {
+          const fin = getEditingTotals(ej);
+          return `
+            <div class="p-3.5 bg-brand-card rounded-xl border border-brand-border hover:border-cyan-500/30 transition space-y-2">
+              <div class="flex items-start justify-between gap-2">
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">${ej.type}</span>
+                <span class="text-[10px] text-slate-400">Due: ${formatDateDisplay(ej.deadline)}</span>
+              </div>
+              <h4 class="font-bold text-xs text-white truncate">${ej.title}</h4>
+              <p class="text-[11px] text-slate-400 truncate">${ej.client}</p>
+              <div class="flex items-center justify-between text-xs pt-1 border-t border-brand-border">
+                <span class="text-slate-400">Pending: <strong class="text-rose-400">${formatINR(fin.pending)}</strong></span>
+                <button onclick="quickPayEditPrompt('${ej.id}')" class="text-[10px] text-brand-gold hover:underline font-bold">+ Log Payment</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      lucide.createIcons();
+    }
+
+    /* ========================================================
+       TAB 2: WEDDINGS
+       ======================================================== */
+    window.renderWeddingsList = function() {
+      const searchStr = (document.getElementById('weddingSearch')?.value || '').toLowerCase();
+      const statusFilter = document.getElementById('weddingPaymentFilter')?.value || 'ALL';
+
+      const filtered = state.weddings.filter(w => {
+        const matchesSearch = w.coupleNames.toLowerCase().includes(searchStr) ||
+          w.city.toLowerCase().includes(searchStr) ||
+          (w.phone || '').includes(searchStr);
+
+        const fin = getWeddingTotals(w);
+        let matchesStatus = true;
+        if (statusFilter === 'PENDING') matchesStatus = fin.pending > 0;
+        if (statusFilter === 'PAID') matchesStatus = fin.pending === 0;
+
+        return matchesSearch && matchesStatus;
+      });
+
+      const container = document.getElementById('allWeddingsGrid');
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-12 text-center bg-brand-card rounded-2xl border border-brand-border text-slate-400">
+            <i data-lucide="heart-off" class="w-10 h-10 mx-auto text-slate-500 mb-2"></i>
+            <p class="font-medium text-xs">No wedding shoots match your search filter.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = filtered.map(w => {
+        const fin = getWeddingTotals(w);
+        const isPaid = fin.pending === 0;
+        const percent = Math.min(100, Math.round((fin.paid / (w.totalAmount || 1)) * 100));
+
+        return `
+          <div class="bg-brand-card rounded-2xl border border-brand-border p-5 space-y-4 hover:border-brand-gold/40 transition flex flex-col justify-between">
+            <div class="space-y-3">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <h3 class="font-serif text-lg font-bold text-white">${w.coupleNames}</h3>
+                  <p class="text-xs text-brand-gold font-medium flex items-center gap-1 mt-0.5">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> ${w.city}
+                  </p>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                  isPaid ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                }">
+                  ${isPaid ? 'Fully Paid' : 'Pending ' + formatINR(fin.pending)}
+                </span>
+              </div>
+
+              <div class="flex items-center gap-2 text-xs text-slate-400 flex-wrap">
+                <span class="inline-flex items-center gap-1 bg-brand-dark px-2 py-0.5 rounded-md border border-brand-border">
+                  <i data-lucide="phone" class="w-3 h-3"></i> ${w.phone || 'No Phone'}
+                </span>
+                <span class="inline-flex items-center gap-1 bg-brand-dark px-2 py-0.5 rounded-md border border-brand-border text-brand-gold">
+                  <i data-lucide="film" class="w-3 h-3"></i> ${w.workflowStatus || 'Upcoming'}
+                </span>
+              </div>
+
+              <!-- Functions list -->
+              <div class="p-2.5 bg-brand-dark rounded-xl border border-brand-border space-y-1">
+                <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Scheduled Functions (${(w.functions || []).length})</p>
+                ${(w.functions || []).map(f => `
+                  <div class="text-xs text-slate-300 flex items-center justify-between">
+                    <span class="truncate pr-2">${f.name}</span>
+                    <span class="text-brand-gold text-[10px] font-mono shrink-0">${formatDateDisplay(f.date)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-brand-border space-y-3">
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-slate-400">Agreed: <strong class="text-white">${formatINR(w.totalAmount)}</strong></span>
+                  <span class="text-emerald-400 font-medium">Paid: ${formatINR(fin.paid)}</span>
+                </div>
+                <div class="w-full bg-brand-dark h-1.5 rounded-full overflow-hidden">
+                  <div class="h-full bg-gradient-to-r from-emerald-500 to-brand-gold rounded-full" style="width: ${percent}%"></div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 pt-1">
+                <button onclick="previewWeddingInvoice('${w.id}')" class="flex-1 py-2 rounded-xl bg-brand-gold hover:bg-amber-400 text-brand-dark font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                  <i data-lucide="receipt" class="w-3.5 h-3.5"></i>
+                  <span>Invoice</span>
+                </button>
+                <button onclick="editWedding('${w.id}')" class="p-2 rounded-xl bg-brand-dark hover:bg-brand-hover text-slate-300 border border-brand-border">
+                  <i data-lucide="edit-3" class="w-4 h-4"></i>
+                </button>
+                <button onclick="deleteWedding('${w.id}')" class="p-2 rounded-xl bg-brand-dark hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-brand-border">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    };
+
+    /* ========================================================
+       TAB 3: EDITING / OTHER WORKS CRM
+       ======================================================== */
+    window.renderEditingList = function() {
+      const searchStr = (document.getElementById('editingSearch')?.value || '').toLowerCase();
+      const statusFilter = document.getElementById('editingStatusFilter')?.value || 'ALL';
+
+      let totalFee = 0;
+      let totalPaid = 0;
+      let totalPending = 0;
+      let activeCount = 0;
+
+      state.editingJobs.forEach(ej => {
+        const fin = getEditingTotals(ej);
+        totalFee += fin.total;
+        totalPaid += fin.paid;
+        totalPending += fin.pending;
+        if (ej.status !== 'Delivered') activeCount++;
+      });
+
+      document.getElementById('edit-summary-total').textContent = formatINR(totalFee);
+      document.getElementById('edit-summary-paid').textContent = formatINR(totalPaid);
+      document.getElementById('edit-summary-pending').textContent = formatINR(totalPending);
+      document.getElementById('edit-summary-active').textContent = activeCount;
+
+      const filtered = state.editingJobs.filter(ej => {
+        const matchesSearch = ej.title.toLowerCase().includes(searchStr) ||
+          ej.client.toLowerCase().includes(searchStr) ||
+          ej.type.toLowerCase().includes(searchStr);
+
+        let matchesStatus = true;
+        if (statusFilter !== 'ALL') matchesStatus = ej.status === statusFilter;
+
+        return matchesSearch && matchesStatus;
+      });
+
+      const container = document.getElementById('allEditingGrid');
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-12 text-center bg-brand-card rounded-2xl border border-brand-border text-slate-400">
+            <i data-lucide="scissors" class="w-10 h-10 mx-auto text-slate-500 mb-2"></i>
+            <p class="font-medium text-xs">No post-production editing jobs found.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = filtered.map(ej => {
+        const fin = getEditingTotals(ej);
+        const isPaid = fin.pending === 0;
+
+        return `
+          <div class="bg-brand-card rounded-2xl border border-brand-border p-5 space-y-3.5 hover:border-cyan-500/40 transition flex flex-col justify-between">
+            <div class="space-y-2">
+              <div class="flex items-start justify-between gap-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
+                  ${ej.type}
+                </span>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  ej.status === 'Delivered' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-brand-dark text-slate-300 border border-brand-border'
+                }">
+                  ${ej.status}
+                </span>
+              </div>
+
+              <h3 class="font-bold text-sm sm:text-base text-white">${ej.title}</h3>
+              <p class="text-xs text-slate-300 flex items-center gap-1">
+                <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i> ${ej.client}
+              </p>
+
+              <div class="grid grid-cols-2 gap-2 text-xs text-slate-400 pt-1">
+                <div>Deadline: <strong class="text-slate-200">${formatDateDisplay(ej.deadline)}</strong></div>
+                <div class="text-right">Balance: <strong class="${isPaid ? 'text-emerald-400' : 'text-rose-400'}">${isPaid ? 'Cleared' : formatINR(fin.pending)}</strong></div>
+              </div>
+
+              ${ej.driveLink ? `
+                <a href="${ej.driveLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-xs text-brand-gold hover:underline truncate max-w-full">
+                  <i data-lucide="external-link" class="w-3 h-3"></i>
+                  <span class="truncate">Footage / Frame.io Link</span>
+                </a>
+              ` : ''}
+
+              ${ej.notes ? `<p class="text-[11px] text-slate-400 bg-brand-dark p-2 rounded-lg border border-brand-border">${ej.notes}</p>` : ''}
+            </div>
+
+            <div class="pt-3 border-t border-brand-border space-y-2.5">
+              <div class="flex justify-between items-center text-xs">
+                <span class="text-slate-400">Agreed Fee: <strong class="text-white">${formatINR(fin.total)}</strong></span>
+                <span class="text-emerald-400 font-semibold">Credited: ${formatINR(fin.paid)}</span>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button onclick="quickPayEditPrompt('${ej.id}')" class="flex-1 py-1.5 rounded-xl bg-brand-gold hover:bg-amber-400 text-brand-dark font-bold text-xs flex items-center justify-center gap-1 transition">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                  <span>Log Payment</span>
+                </button>
+                <button onclick="previewEditInvoice('${ej.id}')" class="p-1.5 rounded-xl bg-brand-dark hover:bg-brand-hover text-slate-200 border border-brand-border" title="Generate Invoice">
+                  <i data-lucide="receipt" class="w-4 h-4"></i>
+                </button>
+                <button onclick="editProjectModal('${ej.id}')" class="p-1.5 rounded-xl bg-brand-dark hover:bg-brand-hover text-slate-200 border border-brand-border">
+                  <i data-lucide="edit-3" class="w-4 h-4"></i>
+                </button>
+                <button onclick="deleteEditJob('${ej.id}')" class="p-1.5 rounded-xl bg-brand-dark text-slate-400 hover:text-rose-400 border border-brand-border">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    };
+
+    window.quickPayEditPrompt = function(jobId) {
+      const ej = state.editingJobs.find(item => item.id === jobId);
+      if (!ej) return;
+
+      const fin = getEditingTotals(ej);
+      const amountStr = prompt(`Enter payment amount received for "${ej.title}" (Pending: ${formatINR(fin.pending)}):`, fin.pending);
+      if (amountStr !== null) {
+        const val = Number(amountStr);
+        if (!isNaN(val) && val > 0) {
+          ej.paidAmount = (Number(ej.paidAmount) || 0) + val;
+          if (ej.paidAmount >= ej.totalFee) {
+            ej.status = 'Delivered';
+          }
+          syncToCloud();
+        }
+      }
+    };
+
+    /* ========================================================
+       TAB 4: QUOTATIONS
+       ======================================================== */
+    window.setQuotationFilter = function(st) {
+      quoteFilter = st;
+      ['ALL', 'Draft', 'Sent', 'Accepted', 'Declined'].forEach(k => {
+        const btn = document.getElementById(`qfilter-${k}`);
+        if (btn) {
+          if (k === st) {
+            btn.className = 'px-3 py-1.5 rounded-xl font-bold bg-brand-gold text-brand-dark';
+          } else {
+            btn.className = 'px-3 py-1.5 rounded-xl text-slate-300 hover:text-white';
+          }
+        }
+      });
+      renderQuotationsList();
+    };
+
+    function renderQuotationsList() {
+      const container = document.getElementById('allQuotationsGrid');
+      const filtered = state.quotations.filter(q => {
+        if (quoteFilter === 'ALL') return true;
+        return q.status === quoteFilter;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-12 text-center bg-brand-card rounded-2xl border border-brand-border text-slate-400">
+            <i data-lucide="file-question" class="w-10 h-10 mx-auto text-slate-500 mb-2"></i>
+            <p class="font-medium text-xs">No quotations in this status filter.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = filtered.map(q => {
+        const grand = getQuoteGrandTotal(q);
+        const isConverted = q.status === 'Accepted';
+
+        return `
+          <div class="bg-brand-card rounded-2xl border border-brand-border p-5 space-y-4 hover:border-brand-gold/40 transition flex flex-col justify-between">
+            <div class="space-y-3">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <h3 class="font-serif text-lg font-bold text-white">${q.client}</h3>
+                  <p class="text-xs text-brand-gold flex items-center gap-1 mt-0.5">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> ${q.city || 'India'}
+                  </p>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  q.status === 'Accepted' ? 'bg-emerald-500/20 text-emerald-400' :
+                  q.status === 'Sent' ? 'bg-blue-500/20 text-blue-400' :
+                  q.status === 'Declined' ? 'bg-rose-500/20 text-rose-400' : 'bg-brand-dark text-slate-300'
+                }">
+                  ${q.status}
+                </span>
+              </div>
+
+              <div class="text-xs text-slate-400 space-y-0.5">
+                <p>Valid Until: <strong class="text-slate-200">${formatDateDisplay(q.validUntil)}</strong></p>
+                <p>Phone: <strong class="text-slate-200">${q.phone || 'N/A'}</strong></p>
+              </div>
+
+              <div class="p-2.5 bg-brand-dark rounded-xl border border-brand-border space-y-1">
+                <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Package Scope (${(q.items || []).length} Items)</p>
+                ${(q.items || []).slice(0, 3).map(it => `
+                  <div class="text-xs text-slate-300 flex justify-between">
+                    <span class="truncate pr-2">• ${it.name}</span>
+                    <span class="text-slate-400 font-mono">${formatINR(it.amount)}</span>
+                  </div>
+                `).join('')}
+                ${(q.items || []).length > 3 ? `<p class="text-[10px] text-brand-gold">+ ${(q.items || []).length - 3} more items...</p>` : ''}
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-brand-border space-y-3">
+              <div class="flex justify-between items-baseline">
+                <span class="text-xs text-slate-400">Total Quoted:</span>
+                <span class="text-base font-bold text-brand-gold font-mono">${formatINR(grand)}</span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick="previewQuotationPrint('${q.id}')" class="py-2 px-3 rounded-xl bg-brand-dark hover:bg-brand-hover text-slate-200 text-xs font-semibold border border-brand-border flex items-center justify-center gap-1.5">
+                  <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                  <span>Print Quote</span>
+                </button>
+
+                ${isConverted ? `
+                  <button disabled class="py-2 px-3 rounded-xl bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30 flex items-center justify-center gap-1 cursor-default">
+                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                    <span>Confirmed</span>
+                  </button>
+                ` : `
+                  <button onclick="convertProposalToShoot('${q.id}')" class="py-2 px-3 rounded-xl bg-brand-gold hover:bg-amber-400 text-brand-dark text-xs font-bold flex items-center justify-center gap-1 transition">
+                    <i data-lucide="arrow-right-circle" class="w-3.5 h-3.5"></i>
+                    <span>Confirm Shoot</span>
+                  </button>
+                `}
+              </div>
+
+              <div class="flex justify-end gap-2 text-xs pt-1">
+                <button onclick="editQuotationModal('${q.id}')" class="text-slate-400 hover:text-white">Edit</button>
+                <span class="text-slate-600">•</span>
+                <button onclick="deleteQuotation('${q.id}')" class="text-rose-400 hover:text-rose-300">Delete</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    window.convertProposalToShoot = function(quoteId) {
+      const q = state.quotations.find(item => item.id === quoteId);
+      if (!q) return;
+
+      const grand = getQuoteGrandTotal(q);
+      const newBooking = {
+        id: 'w_' + Date.now(),
+        coupleNames: q.client,
+        phone: q.phone || '',
+        city: q.city || 'India',
+        workflowStatus: 'Upcoming Shoot',
+        totalAmount: grand,
+        functions: [
+          { name: 'Sangeet & Cocktail', date: getOffsetDate(10), venue: '' },
+          { name: 'Wedding Ceremony', date: getOffsetDate(11), venue: '' }
+        ],
+        payments: [
+          {
+            id: 'p_' + Date.now(),
+            title: 'Proposal Confirmation Advance',
+            amount: Math.round(grand * 0.35),
+            date: new Date().toISOString().split('T')[0],
+            mode: 'UPI'
+          }
+        ]
+      };
+
+      state.weddings.unshift(newBooking);
+      q.status = 'Accepted';
+      syncToCloud();
+      showToast(`Confirmed shoot booked for ${q.client}!`);
+      switchTab('weddings');
+    };
+
+    /* ========================================================
+       TAB 5: FINANCIAL SUMMARY & CHARTS
+       ======================================================== */
+    let ratioChart = null;
+    let revCategoryChart = null;
+
+    function renderFinancialsTab() {
+      let weddingTotal = 0;
+      let weddingPaid = 0;
+      state.weddings.forEach(w => {
+        const fin = getWeddingTotals(w);
+        weddingTotal += fin.total;
+        weddingPaid += fin.paid;
+      });
+
+      let editTotal = 0;
+      let editPaid = 0;
+      state.editingJobs.forEach(ej => {
+        const fin = getEditingTotals(ej);
+        editTotal += fin.total;
+        editPaid += fin.paid;
+      });
+
+      const grandTotal = weddingTotal + editTotal;
+      const grandPaid = weddingPaid + editPaid;
+      const grandPending = Math.max(0, grandTotal - grandPaid);
+
+      const quotePipeline = state.quotations
+        .filter(q => q.status === 'Sent' || q.status === 'Draft')
+        .reduce((sum, q) => sum + getQuoteGrandTotal(q), 0);
+
+      document.getElementById('fin-wedding-total').textContent = formatINR(weddingTotal);
+      document.getElementById('fin-wedding-collected').textContent = `${formatINR(weddingPaid)} received`;
+
+      document.getElementById('fin-editing-total').textContent = formatINR(editTotal);
+      document.getElementById('fin-editing-collected').textContent = `${formatINR(editPaid)} received`;
+
+      document.getElementById('fin-pipeline-total').textContent = formatINR(quotePipeline);
+      document.getElementById('fin-pipeline-sub').textContent = `${state.quotations.filter(q => q.status === 'Sent').length} proposals sent`;
+
+      document.getElementById('chartCreditedVal').textContent = formatINR(grandPaid);
+      document.getElementById('chartPendingVal').textContent = formatINR(grandPending);
+
+      const ratioCtx = document.getElementById('ratioChart')?.getContext('2d');
+      if (ratioCtx) {
+        if (ratioChart) ratioChart.destroy();
+        const dataValues = (grandPaid === 0 && grandPending === 0) ? [1, 0] : [grandPaid, grandPending];
+
+        ratioChart = new Chart(ratioCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Credited', 'Pending'],
+            datasets: [{
+              data: dataValues,
+              backgroundColor: ['#10B981', '#F43F5E'],
+              borderWidth: 2,
+              borderColor: '#0F172A'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: { legend: { display: false } }
+          }
+        });
+      }
+
+      const breakdown = {
+        'Wedding Shoots': weddingTotal,
+        'Teasers / Highlights': 0,
+        'Reels Bundles': 0,
+        'Color Grading': 0,
+        'Commercials': 0
+      };
+
+      state.editingJobs.forEach(ej => {
+        if (ej.type === 'Cinematic Teaser' || ej.type === 'Wedding Film Edit') breakdown['Teasers / Highlights'] += ej.totalFee;
+        else if (ej.type === 'Reels Package') breakdown['Reels Bundles'] += ej.totalFee;
+        else if (ej.type === 'Color Grading') breakdown['Color Grading'] += ej.totalFee;
+        else breakdown['Commercials'] += ej.totalFee;
+      });
+
+      const catCtx = document.getElementById('revenueCategoryChart')?.getContext('2d');
+      if (catCtx) {
+        if (revCategoryChart) revCategoryChart.destroy();
+        revCategoryChart = new Chart(catCtx, {
+          type: 'bar',
+          data: {
+            labels: Object.keys(breakdown),
+            datasets: [{
+              data: Object.values(breakdown),
+              backgroundColor: ['#F59E0B', '#06B6D4', '#10B981', '#8B5CF6', '#EC4899'],
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(c) { return ' Total: ' + formatINR(c.raw); }
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { color: '#94A3B8', font: { size: 10 } }
+              },
+              y: {
+                grid: { color: '#1E293B' },
+                ticks: {
+                  color: '#94A3B8',
+                  font: { size: 10 },
+                  callback: function(v) { return '₹' + (v / 1000) + 'k'; }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      const receipts = [];
+      state.weddings.forEach(w => {
+        (w.payments || []).forEach(p => {
+          receipts.push({
+            date: p.date,
+            client: w.coupleNames,
+            stream: 'Wedding Shoot',
+            milestone: p.title || 'Installment',
+            mode: p.mode || 'UPI',
+            amount: p.amount
+          });
+        });
+      });
+
+      state.editingJobs.forEach(ej => {
+        if (ej.paidAmount > 0) {
+          receipts.push({
+            date: ej.deadline || new Date().toISOString().split('T')[0],
+            client: ej.client,
+            stream: 'Editing Work',
+            milestone: ej.type,
+            mode: 'Bank/UPI',
+            amount: ej.paidAmount
+          });
+        }
+      });
+
+      receipts.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+      document.getElementById('finReceiptCount').textContent = `${receipts.length} Receipts`;
+
+      const tbody = document.getElementById('financialReceiptsTable');
+      if (receipts.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500">No payment deposits recorded yet.</td></tr>`;
+      } else {
+        tbody.innerHTML = receipts.map(r => `
+          <tr class="hover:bg-brand-dark/50 transition">
+            <td class="py-3 px-4 font-mono text-slate-300">${formatDateDisplay(r.date)}</td>
+            <td class="py-3 px-4 font-bold text-white">${r.client}</td>
+            <td class="py-3 px-4">
+              <span class="px-2 py-0.5 rounded text-[9px] font-bold ${r.stream === 'Wedding Shoot' ? 'bg-amber-500/15 text-brand-gold' : 'bg-cyan-500/15 text-cyan-400'}">
+                ${r.stream}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-slate-300">${r.milestone}</td>
+            <td class="py-3 px-4 font-mono text-slate-400">${r.mode}</td>
+            <td class="py-3 px-4 text-right font-bold text-emerald-400 font-mono">${formatINR(r.amount)}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    /* ========================================================
+       WHATSAPP REMINDERS GENERATOR (ONE-CLICK)
+       ======================================================== */
+    window.openPendingRemindersModal = function() {
+      const container = document.getElementById('remindersListContainer');
+      const pendingList = [];
+
+      state.weddings.forEach(w => {
+        const fin = getWeddingTotals(w);
+        if (fin.pending > 0) {
+          pendingList.push({
+            id: w.id,
+            name: w.coupleNames,
+            phone: w.phone,
+            type: 'Wedding Shoot',
+            pending: fin.pending,
+            dueDate: w.functions?.[0]?.date || 'Upcoming'
+          });
+        }
+      });
+
+      state.editingJobs.forEach(ej => {
+        const fin = getEditingTotals(ej);
+        if (fin.pending > 0) {
+          pendingList.push({
+            id: ej.id,
+            name: ej.client,
+            phone: '',
+            type: `Editing: ${ej.title}`,
+            pending: fin.pending,
+            dueDate: ej.deadline || 'Deliverables'
+          });
+        }
+      });
+
+      if (pendingList.length === 0) {
+        container.innerHTML = `
+          <div class="py-8 text-center text-slate-400">
+            <i data-lucide="check-circle-2" class="w-10 h-10 text-emerald-400 mx-auto mb-2"></i>
+            <p class="font-bold text-sm text-white">All cleared!</p>
+            <p class="text-xs">There are no pending dues across all wedding shoots and editing projects.</p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = pendingList.map(item => {
+          const rawMessage = `Hello ${item.name}! Polite reminder from ${state.studioProfile.name}. The remaining milestone balance of ${formatINR(item.pending)} for your cinematography assignment is pending settlement. Kindly transfer via UPI to ${state.studioProfile.upiId} or bank account. Thank you!`;
+          const encoded = encodeURIComponent(rawMessage);
+          const cleanPhone = (item.phone || '').replace(/[^0-9]/g, '');
+
+          return `
+            <div class="p-3.5 bg-brand-dark rounded-xl border border-brand-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h4 class="font-bold text-white text-sm">${item.name}</h4>
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 font-bold">${item.type}</span>
+                </div>
+                <p class="text-xs text-rose-400 font-bold mt-0.5">Pending: ${formatINR(item.pending)}</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">Contact: ${item.phone || 'Phone not logged'}</p>
+              </div>
+
+              <div class="flex items-center gap-2">
+                ${cleanPhone ? `
+                  <a href="https://wa.me/${cleanPhone}?text=${encoded}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5">
+                    <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                    <span>Send WhatsApp</span>
+                  </a>
+                ` : `
+                  <button onclick="copyReminderText('${rawMessage.replace(/'/g, "\\'")}')" class="px-3 py-1.5 rounded-lg bg-brand-border hover:bg-brand-hover text-slate-200 font-bold text-xs flex items-center gap-1">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                    <span>Copy Text</span>
+                  </button>
+                `}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('remindersModal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.closeRemindersModal = function() {
+      document.getElementById('remindersModal').classList.add('hidden');
+    };
+
+    window.copyReminderText = function(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      showToast('Reminder copied to clipboard!');
+    };
+
+    /* ========================================================
+       PRINT & INVOICE / QUOTATION A4 GENERATOR
+       ======================================================== */
+    function populatePrintStudioHeader() {
+      document.getElementById('printStudioName').textContent = state.studioProfile.name || 'THE ROYAL REEL CINEMAS';
+      document.getElementById('printStudioTag').textContent = state.studioProfile.tagline || 'Luxury Wedding Films';
+      document.getElementById('printStudioPhone').textContent = state.studioProfile.phone || '';
+      document.getElementById('printStudioEmail').textContent = state.studioProfile.email || '';
+      document.getElementById('printStudioCity').textContent = state.studioProfile.city || '';
+      document.getElementById('printStudioGst').textContent = state.studioProfile.gstin ? `GSTIN: ${state.studioProfile.gstin}` : '';
+      document.getElementById('printUpiId').textContent = state.studioProfile.upiId || 'royalreel@okhdfcbank';
+      document.getElementById('printBankDetails').textContent = state.studioProfile.bankDetails || 'HDFC Bank';
+    }
+
+    window.previewWeddingInvoice = function(weddingId) {
+      const w = state.weddings.find(item => item.id === weddingId);
+      if (!w) return;
+
+      populatePrintStudioHeader();
+      document.getElementById('printModalTitle').textContent = `Tax Invoice: ${w.coupleNames}`;
+      document.getElementById('printDocBadge').textContent = 'TAX INVOICE';
+      document.getElementById('printDocRef').textContent = `INV-${new Date().getFullYear()}-${w.id.slice(-4).toUpperCase()}`;
+      document.getElementById('printDocDate').textContent = formatDateDisplay(new Date().toISOString());
+
+      document.getElementById('printClientName').textContent = w.coupleNames;
+      document.getElementById('printClientPhone').textContent = w.phone || 'N/A';
+      document.getElementById('printProjectLocation').textContent = w.city;
+      document.getElementById('printProjectDates').textContent = `${(w.functions || []).length} Scheduled Wedding Functions`;
+
+      const funcs = w.functions || [];
+      const itemPrice = funcs.length > 0 ? Math.round(w.totalAmount / funcs.length) : w.totalAmount;
+
+      const itemsTbody = document.getElementById('printDocItems');
+      itemsTbody.innerHTML = funcs.map(f => `
+        <tr class="border-b border-slate-100">
+          <td class="py-2.5 px-3">
+            <strong class="text-slate-900">${f.name}</strong> - 4K Drone & Candid Cinematography Coverage (${formatDateDisplay(f.date)})
+          </td>
+          <td class="py-2.5 px-3 text-center text-slate-600 font-mono">1</td>
+          <td class="py-2.5 px-3 text-right font-semibold text-slate-900 font-mono">${formatINR(itemPrice)}</td>
+        </tr>
+      `).join('');
+
+      const fin = getWeddingTotals(w);
+      document.getElementById('printSubtotal').textContent = formatINR(w.totalAmount);
+      document.getElementById('printDiscountRow').classList.add('hidden');
+      document.getElementById('printGstRow').classList.add('hidden');
+      document.getElementById('printGrandTotal').textContent = formatINR(w.totalAmount);
+
+      document.getElementById('printPaidRow').classList.remove('hidden');
+      document.getElementById('printTotalPaid').textContent = '- ' + formatINR(fin.paid);
+      document.getElementById('printFinalLabel').textContent = 'Net Balance Due:';
+      document.getElementById('printFinalAmount').textContent = formatINR(fin.pending);
+
+      document.getElementById('printModal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.previewEditInvoice = function(jobId) {
+      const ej = state.editingJobs.find(item => item.id === jobId);
+      if (!ej) return;
+
+      populatePrintStudioHeader();
+      document.getElementById('printModalTitle').textContent = `Invoice: ${ej.title}`;
+      document.getElementById('printDocBadge').textContent = 'TAX INVOICE / POST-PRODUCTION';
+      document.getElementById('printDocRef').textContent = `EDIT-${new Date().getFullYear()}-${ej.id.slice(-4).toUpperCase()}`;
+      document.getElementById('printDocDate').textContent = formatDateDisplay(new Date().toISOString());
+
+      document.getElementById('printClientName').textContent = ej.client;
+      document.getElementById('printClientPhone').textContent = '';
+      document.getElementById('printProjectLocation').textContent = 'Post-Production Facility';
+      document.getElementById('printProjectDates').textContent = `Target Delivery: ${formatDateDisplay(ej.deadline)}`;
+
+      document.getElementById('printDocItems').innerHTML = `
+        <tr class="border-b border-slate-100">
+          <td class="py-2.5 px-3">
+            <strong class="text-slate-900">${ej.title}</strong> (${ej.type}) - 4K Master Export & Color Grading
+          </td>
+          <td class="py-2.5 px-3 text-center text-slate-600 font-mono">1</td>
+          <td class="py-2.5 px-3 text-right font-semibold text-slate-900 font-mono">${formatINR(ej.totalFee)}</td>
+        </tr>
+      `;
+
+      const fin = getEditingTotals(ej);
+      document.getElementById('printSubtotal').textContent = formatINR(ej.totalFee);
+      document.getElementById('printDiscountRow').classList.add('hidden');
+      document.getElementById('printGstRow').classList.add('hidden');
+      document.getElementById('printGrandTotal').textContent = formatINR(ej.totalFee);
+      document.getElementById('printPaidRow').classList.remove('hidden');
+      document.getElementById('printTotalPaid').textContent = '- ' + formatINR(fin.paid);
+      document.getElementById('printFinalLabel').textContent = 'Balance Due:';
+      document.getElementById('printFinalAmount').textContent = formatINR(fin.pending);
+
+      document.getElementById('printModal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.previewQuotationPrint = function(quoteId) {
+      const q = state.quotations.find(item => item.id === quoteId);
+      if (!q) return;
+
+      populatePrintStudioHeader();
+      document.getElementById('printModalTitle').textContent = `Quotation: ${q.client}`;
+      document.getElementById('printDocBadge').textContent = 'PROPOSAL / ESTIMATE';
+      document.getElementById('printDocRef').textContent = `QUOTE-${new Date().getFullYear()}-${q.id.slice(-4).toUpperCase()}`;
+      document.getElementById('printDocDate').textContent = formatDateDisplay(new Date().toISOString());
+
+      document.getElementById('printClientName').textContent = q.client;
+      document.getElementById('printClientPhone').textContent = q.phone || 'N/A';
+      document.getElementById('printProjectLocation').textContent = q.city || 'India';
+      document.getElementById('printProjectDates').textContent = `Valid Until: ${formatDateDisplay(q.validUntil)}`;
+
+      const itemsTbody = document.getElementById('printDocItems');
+      itemsTbody.innerHTML = (q.items || []).map(it => `
+        <tr class="border-b border-slate-100">
+          <td class="py-2.5 px-3"><strong class="text-slate-900">${it.name}</strong></td>
+          <td class="py-2.5 px-3 text-center text-slate-600 font-mono">1</td>
+          <td class="py-2.5 px-3 text-right font-semibold text-slate-900 font-mono">${formatINR(it.amount)}</td>
+        </tr>
+      `).join('');
+
+      const baseSub = (q.items || []).reduce((sum, it) => sum + (Number(it.amount) || 0), 0);
+      const discount = Number(q.discount) || 0;
+      const taxable = Math.max(0, baseSub - discount);
+      const gst = q.applyGst ? Math.round(taxable * 0.18) : 0;
+      const grand = taxable + gst;
+
+      document.getElementById('printSubtotal').textContent = formatINR(baseSub);
+
+      if (discount > 0) {
+        document.getElementById('printDiscountRow').classList.remove('hidden');
+        document.getElementById('printDiscountVal').textContent = '- ' + formatINR(discount);
+      } else {
+        document.getElementById('printDiscountRow').classList.add('hidden');
+      }
+
+      if (q.applyGst) {
+        document.getElementById('printGstRow').classList.remove('hidden');
+        document.getElementById('printGstVal').textContent = formatINR(gst);
+      } else {
+        document.getElementById('printGstRow').classList.add('hidden');
+      }
+
+      document.getElementById('printGrandTotal').textContent = formatINR(grand);
+      document.getElementById('printPaidRow').classList.add('hidden');
+      document.getElementById('printFinalLabel').textContent = 'Estimated Package Investment:';
+      document.getElementById('printFinalAmount').textContent = formatINR(grand);
+
+      document.getElementById('printDocTerms').innerHTML = `<strong>Payment Terms:</strong> ${q.terms || 'Standard payment terms apply.'}`;
+
+      document.getElementById('printModal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.closePrintModal = function() {
+      document.getElementById('printModal').classList.add('hidden');
+    };
+
+    /* ========================================================
+       WEDDING BOOKING FORM LOGIC
+       ======================================================== */
+    let tempFunctions = [];
+    let tempPayments = [];
+
+    window.openNewWeddingModal = function() {
+      document.getElementById('weddingModalTitle').textContent = 'Log New Wedding Shoot Contract';
+      document.getElementById('weddingEditId').value = '';
+      document.getElementById('wCoupleNames').value = '';
+      document.getElementById('wCity').value = '';
+      document.getElementById('wPhone').value = '';
+      document.getElementById('wWorkflowStatus').value = 'Upcoming Shoot';
+      document.getElementById('wTotalAmount').value = '';
+
+      tempFunctions = [
+        { name: 'Sangeet & Cocktails', date: getOffsetDate(10), venue: '' },
+        { name: 'Wedding & Pheras', date: getOffsetDate(11), venue: '' }
+      ];
+
+      tempPayments = [
+        { id: 'p_' + Date.now(), title: 'Booking Token Advance', amount: 50000, date: new Date().toISOString().split('T')[0], mode: 'UPI' }
+      ];
+
+      renderFormFunctions();
+      renderFormPayments();
+      calculateWeddingFormBalance();
+
+      document.getElementById('weddingModal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.editWedding = function(id) {
+      const w = state.weddings.find(item => item.id === id);
+      if (!w) return;
+
+      document.getElementById('weddingModalTitle').textContent = `Edit Contract: ${w.coupleNames}`;
+      document.getElementById('weddingEditId').value = w.id;
+      document.getElementById('wCoupleNames').value = w.coupleNames || '';
+      document.getElementById('wCity').value = w.city || '';
+      document.getElementById('wPhone').value = w.phone || '';
+      document.getElementById('wWorkflowStatus').value = w.workflowStatus || 'Upcoming Shoot';
+      document.getElementById('wTotalAmount').value = w.totalAmount || 0;
+
+      tempFunctions = JSON.parse(JSON.stringify(w.functions || []));
+      tempPayments = JSON.parse(JSON.stringify(w.payments || []));
+
+      renderFormFunctions();
+      renderFormPayments();
+      calculateWeddingFormBalance();
+
+      document.getElementById('weddingModal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.closeWeddingModal = function() {
+      document.getElementById('weddingModal').classList.add('hidden');
+    };
+
+    window.addFunctionRow = function() {
+      tempFunctions.push({ name: 'Wedding Function', date: getOffsetDate(14), venue: '' });
+      renderFormFunctions();
+    };
+
+    window.removeFunctionRow = function(idx) {
+      tempFunctions.splice(idx, 1);
+      renderFormFunctions();
+    };
+
+    function renderFormFunctions() {
+      const c = document.getElementById('wFunctionsList');
+      c.innerHTML = tempFunctions.map((f, i) => `
+        <div class="p-2.5 bg-brand-dark rounded-xl border border-brand-border grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+          <div class="sm:col-span-5">
+            <input type="text" value="${f.name}" placeholder="Function name" onchange="tempFunctions[${i}].name = this.value" class="w-full bg-brand-card border border-brand-border rounded-lg px-2.5 py-1.5 text-xs text-white" />
+          </div>
+          <div class="sm:col-span-3">
+            <input type="date" value="${f.date}" onchange="tempFunctions[${i}].date = this.value" class="w-full bg-brand-card border border-brand-border rounded-lg px-2.5 py-1.5 text-xs text-white" />
+          </div>
+          <div class="sm:col-span-3">
+            <input type="text" value="${f.venue || ''}" placeholder="Venue / Hotel" onchange="tempFunctions[${i}].venue = this.value" class="w-full bg-brand-card border border-brand-border rounded-lg px-2.5 py-1.5 text-xs text-white" />
+          </div>
+          <div class="sm:col-span-1 text-right">
+            <button type="button" onclick="removeFunctionRow(${i})" class="text-rose-400 p-1">
+              <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    window.addPaymentRow = function() {
+      tempPayments.push({
+        id: 'p_' + Date.now(),
+        title: 'Installment',
+        amount: 25000,
+        date: new Date().toISOString().split('T')[0],
+        mode: 'UPI'
+      });
+      renderFormPayments();
+      calculateWeddingFormBalance();
+    };
+
+    window.removePaymentRow = function(idx) {
+      tempPayments.splice(idx, 1);
+      renderFormPayments();
+      calculateWeddingFormBalance();
+    };
+
+    function renderFormPayments() {
+      const c = document.getElementById('wPaymentsList');
+      c.innerHTML = tempPayments.map((p, i) => `
+        <div class="p-2.5 bg-brand-dark rounded-xl border border-brand-border grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+          <div class="sm:col-span-4">
+            <input type="text" value="${p.title}" placeholder="Milestone / Note" onchange="tempPayments[${i}].title = this.value" class="w-full bg-brand-card border border-brand-border rounded-lg px-2.5 py-1.5 text-xs text-white" />
+          </div>
+          <div class="sm:col-span-3">
+            <div class="relative">
+              <span class="absolute left-2 top-1.5 text-emerald-400 font-bold">₹</span>
+              <input type="number" min="0" step="500" value="${p.amount}" oninput="tempPayments[${i}].amount = Number(this.value); calculateWeddingFormBalance();" class="w-full pl-6 pr-2 py-1.5 bg-brand-card border border-brand-border rounded-lg text-xs text-emerald-400 font-bold" />
+            </div>
+          </div>
+          <div class="sm:col-span-2">
+            <select onchange="tempPayments[${i}].mode = this.value" class="w-full bg-brand-card border border-brand-border rounded-lg px-1.5 py-1.5 text-xs text-white">
+              <option value="UPI" ${p.mode === 'UPI' ? 'selected' : ''}>UPI</option>
+              <option value="NEFT" ${p.mode === 'NEFT' ? 'selected' : ''}>NEFT</option>
+              <option value="Cash" ${p.mode === 'Cash' ? 'selected' : ''}>Cash</option>
+            </select>
+          </div>
+          <div class="sm:col-span-2">
+            <input type="date" value="${p.date}" onchange="tempPayments[${i}].date = this.value" class="w-full bg-brand-card border border-brand-border rounded-lg px-1.5 py-1.5 text-xs text-white" />
+          </div>
+          <div class="sm:col-span-1 text-right">
+            <button type="button" onclick="removePaymentRow(${i})" class="text-rose-400 p-1">
+              <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    window.calculateWeddingFormBalance = function() {
+      const total = Number(document.getElementById('wTotalAmount')?.value) || 0;
+      const paid = tempPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+      const pending = Math.max(0, total - paid);
+
+      document.getElementById('wFormTotalPaid').textContent = formatINR(paid);
+      document.getElementById('wFormPendingBalance').textContent = formatINR(pending);
+    };
+
+    window.saveWeddingForm = function(e) {
+      e.preventDefault();
+      const editId = document.getElementById('weddingEditId').value;
+      const coupleNames = document.getElementById('wCoupleNames').value.trim();
+      const city = document.getElementById('wCity').value.trim();
+      const phone = document.getElementById('wPhone').value.trim();
+      const workflowStatus = document.getElementById('wWorkflowStatus').value;
+      const totalAmount = Number(document.getElementById('wTotalAmount').value) || 0;
+
+      if (!coupleNames || !city) return;
+
+      if (editId) {
+        const idx = state.weddings.findIndex(item => item.id === editId);
+        if (idx !== -1) {
+          state.weddings[idx] = {
+            ...state.weddings[idx],
+            coupleNames, city, phone, workflowStatus, totalAmount,
+            functions: tempFunctions,
+            payments: tempPayments
+          };
+        }
+      } else {
+        state.weddings.unshift({
+          id: 'w_' + Date.now(),
+          coupleNames, city, phone, workflowStatus, totalAmount,
+          functions: tempFunctions,
+          payments: tempPayments
+        });
+      }
+
+      closeWeddingModal();
+      syncToCloud();
+    };
+
+    window.deleteWedding = function(id) {
+      if (confirm('Delete this wedding booking?')) {
+        state.weddings = state.weddings.filter(item => item.id !== id);
+        syncToCloud();
+      }
+    };
+
+    /* ========================================================
+       EDITING / POST-PRODUCTION FORM LOGIC
+       ======================================================== */
+    window.openNewEditJobModal = function() {
+      document.getElementById('editJobModalTitle').textContent = 'Log Editing / Freelance Job';
+      document.getElementById('editJobId').value = '';
+      document.getElementById('ejTitle').value = '';
+      document.getElementById('ejClient').value = '';
+      document.getElementById('ejType').value = 'Wedding Film Edit';
+      document.getElementById('ejDeadline').value = getOffsetDate(7);
+      document.getElementById('ejStatus').value = 'Rough Cut';
+      document.getElementById('ejFee').value = '';
+      document.getElementById('ejPaid').value = '';
+      document.getElementById('ejDrive').value = '';
+      document.getElementById('ejNotes').value = '';
+
+      document.getElementById('editJobModal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.editProjectModal = function(id) {
+      const ej = state.editingJobs.find(item => item.id === id);
+      if (!ej) return;
+
+      document.getElementById('editJobModalTitle').textContent = `Edit Work: ${ej.title}`;
+      document.getElementById('editJobId').value = ej.id;
+      document.getElementById('ejTitle').value = ej.title || '';
+      document.getElementById('ejClient').value = ej.client || '';
+      document.getElementById('ejType').value = ej.type || 'Wedding Film Edit';
+      document.getElementById('ejDeadline').value = ej.deadline || '';
+      document.getElementById('ejStatus').value = ej.status || 'Rough Cut';
+      document.getElementById('ejFee').value = ej.totalFee || 0;
+      document.getElementById('ejPaid').value = ej.paidAmount || 0;
+      document.getElementById('ejDrive').value = ej.driveLink || '';
+      document.getElementById('ejNotes').value = ej.notes || '';
+
+      document.getElementById('editJobModal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.closeEditJobModal = function() {
+      document.getElementById('editJobModal').classList.add('hidden');
+    };
+
+    window.saveEditJobForm = function(e) {
+      e.preventDefault();
+      const editId = document.getElementById('editJobId').value;
+      const title = document.getElementById('ejTitle').value.trim();
+      const client = document.getElementById('ejClient').value.trim();
+      const type = document.getElementById('ejType').value;
+      const deadline = document.getElementById('ejDeadline').value;
+      const status = document.getElementById('ejStatus').value;
+      const totalFee = Number(document.getElementById('ejFee').value) || 0;
+      const paidAmount = Number(document.getElementById('ejPaid').value) || 0;
+      const driveLink = document.getElementById('ejDrive').value.trim();
+      const notes = document.getElementById('ejNotes').value.trim();
+
+      if (!title || !client) return;
+
+      if (editId) {
+        const idx = state.editingJobs.findIndex(item => item.id === editId);
+        if (idx !== -1) {
+          state.editingJobs[idx] = {
+            ...state.editingJobs[idx],
+            title, client, type, deadline, status, totalFee, paidAmount, driveLink, notes
+          };
+        }
+      } else {
+        state.editingJobs.unshift({
+          id: 'ej_' + Date.now(),
+          title, client, type, deadline, status, totalFee, paidAmount, driveLink, notes
+        });
+      }
+
+      closeEditJobModal();
+      syncToCloud();
+    };
+
+    window.deleteEditJob = function(id) {
+      if (confirm('Delete this editing job?')) {
+        state.editingJobs = state.editingJobs.filter(item => item.id !== id);
+        syncToCloud();
+      }
+    };
+
+    /* ========================================================
+       QUOTATION MODAL LOGIC
+       ======================================================== */
+    let tempQuoteItems = [];
+
+    window.openNewQuotationModal = function() {
+      document.getElementById('quotationModalTitle').textContent = 'Create Wedding Proposal / Quote';
+      document.getElementById('quoteEditId').value = '';
+      document.getElementById('qClient').value = '';
+      document.getElementById('qCity').value = '';
+      document.getElementById('qPhone').value = '';
+      document.getElementById('qValidUntil').value = getOffsetDate(15);
+      document.getElementById('qDiscount').value = '0';
+      document.getElementById('qGstToggle').checked = true;
+      document.getElementById('qStatus').value = 'Draft';
+
+      tempQuoteItems = [
+        { name: 'Traditional & Cinematic Coverage (2 Camera Operators)', amount: 120000 },
+        { name: 'Licensed Drone 4K Pilot (Haldi, Sangeet & Wedding)', amount: 35000 },
+        { name: 'Cinematic 4K Teaser + Full Length Wedding Cut', amount: 45000 }
+      ];
+
+      renderQuoteItemsList();
+      calcQuoteTotals();
+
+      document.getElementById('quotationModal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.editQuotationModal = function(id) {
+      const q = state.quotations.find(item => item.id === id);
+      if (!q) return;
+
+      document.getElementById('quotationModalTitle').textContent = `Edit Proposal: ${q.client}`;
+      document.getElementById('quoteEditId').value = q.id;
+      document.getElementById('qClient').value = q.client || '';
+      document.getElementById('qCity').value = q.city || '';
+      document.getElementById('qPhone').value = q.phone || '';
+      document.getElementById('qValidUntil').value = q.validUntil || '';
+      document.getElementById('qDiscount').value = q.discount || 0;
+      document.getElementById('qGstToggle').checked = !!q.applyGst;
+      document.getElementById('qStatus').value = q.status || 'Draft';
+      document.getElementById('qTerms').value = q.terms || '';
+
+      tempQuoteItems = JSON.parse(JSON.stringify(q.items || []));
+
+      renderQuoteItemsList();
+      calcQuoteTotals();
+
+      document.getElementById('quotationModal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.closeQuotationModal = function() {
+      document.getElementById('quotationModal').classList.add('hidden');
+    };
+
+    window.addQuoteItemRow = function() {
+      tempQuoteItems.push({ name: 'Additional Service / Deliverable', amount: 15000 });
+      renderQuoteItemsList();
+      calcQuoteTotals();
+    };
+
+    window.removeQuoteItemRow = function(idx) {
+      tempQuoteItems.splice(idx, 1);
+      renderQuoteItemsList();
+      calcQuoteTotals();
+    };
+
+    function renderQuoteItemsList() {
+      const c = document.getElementById('qItemsList');
+      c.innerHTML = tempQuoteItems.map((it, idx) => `
+        <div class="flex items-center gap-2 p-2 bg-brand-dark rounded-xl border border-brand-border">
+          <input type="text" value="${it.name}" placeholder="Service description" onchange="tempQuoteItems[${idx}].name = this.value" class="flex-1 bg-brand-card border border-brand-border rounded-lg px-2.5 py-1.5 text-xs text-white" />
+          <div class="relative w-28 shrink-0">
+            <span class="absolute left-2 top-1.5 text-brand-gold font-bold text-xs">₹</span>
+            <input type="number" min="0" step="500" value="${it.amount}" oninput="tempQuoteItems[${idx}].amount = Number(this.value); calcQuoteTotals();" class="w-full pl-6 pr-2 py-1.5 bg-brand-card border border-brand-border rounded-lg text-xs text-white font-bold text-right" />
+          </div>
+          <button type="button" onclick="removeQuoteItemRow(${idx})" class="p-1.5 text-rose-400">
+            <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    window.calcQuoteTotals = function() {
+      const subtotal = tempQuoteItems.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
+      const discount = Number(document.getElementById('qDiscount')?.value) || 0;
+      const taxable = Math.max(0, subtotal - discount);
+      const applyGst = document.getElementById('qGstToggle')?.checked;
+      const gst = applyGst ? Math.round(taxable * 0.18) : 0;
+      const grand = taxable + gst;
+
+      document.getElementById('qCalculatedTotal').textContent = formatINR(grand);
+    };
+
+    window.saveQuotationForm = function(e) {
+      e.preventDefault();
+      const editId = document.getElementById('quoteEditId').value;
+      const client = document.getElementById('qClient').value.trim();
+      const city = document.getElementById('qCity').value.trim();
+      const phone = document.getElementById('qPhone').value.trim();
+      const validUntil = document.getElementById('qValidUntil').value;
+      const discount = Number(document.getElementById('qDiscount').value) || 0;
+      const applyGst = document.getElementById('qGstToggle').checked;
+      const status = document.getElementById('qStatus').value;
+      const terms = document.getElementById('qTerms').value.trim();
+
+      if (!client) return;
+
+      if (editId) {
+        const idx = state.quotations.findIndex(item => item.id === editId);
+        if (idx !== -1) {
+          state.quotations[idx] = {
+            ...state.quotations[idx],
+            client, city, phone, validUntil, discount, applyGst, status, terms,
+            items: tempQuoteItems
+          };
+        }
+      } else {
+        state.quotations.unshift({
+          id: 'qt_' + Date.now(),
+          client, city, phone, validUntil, discount, applyGst, status, terms,
+          items: tempQuoteItems
+        });
+      }
+
+      closeQuotationModal();
+      syncToCloud();
+    };
+
+    window.deleteQuotation = function(id) {
+      if (confirm('Delete this quotation?')) {
+        state.quotations = state.quotations.filter(item => item.id !== id);
+        syncToCloud();
+      }
+    };
+
+    /* ========================================================
+       STUDIO PROFILE & SETTINGS
+       ======================================================== */
+    window.openSettingsModal = function() {
+      document.getElementById('setStudioName').value = state.studioProfile.name || '';
+      document.getElementById('setStudioTag').value = state.studioProfile.tagline || '';
+      document.getElementById('setStudioPhone').value = state.studioProfile.phone || '';
+      document.getElementById('setStudioCity').value = state.studioProfile.city || '';
+      document.getElementById('setStudioEmail').value = state.studioProfile.email || '';
+      document.getElementById('setStudioGst').value = state.studioProfile.gstin || '';
+      document.getElementById('setStudioUpi').value = state.studioProfile.upiId || '';
+      document.getElementById('setStudioBank').value = state.studioProfile.bankDetails || '';
+
+      document.getElementById('settingsModal').classList.remove('hidden');
+      lucide.createIcons();
+    };
+
+    window.closeSettingsModal = function() {
+      document.getElementById('settingsModal').classList.add('hidden');
+    };
+
+    window.saveStudioSettings = function(e) {
+      e.preventDefault();
+      state.studioProfile = {
+        name: document.getElementById('setStudioName').value.trim(),
+        tagline: document.getElementById('setStudioTag').value.trim(),
+        phone: document.getElementById('setStudioPhone').value.trim(),
+        city: document.getElementById('setStudioCity').value.trim(),
+        email: document.getElementById('setStudioEmail').value.trim(),
+        gstin: document.getElementById('setStudioGst').value.trim(),
+        upiId: document.getElementById('setStudioUpi').value.trim(),
+        bankDetails: document.getElementById('setStudioBank').value.trim()
+      };
+
+      closeSettingsModal();
+      syncToCloud();
+    };
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+
+    // Initialize application on load
+    window.onload = function() {
+      initAuthAndApp();
+      lucide.createIcons();
+    };
+  </script>
+</body>
+</html>
